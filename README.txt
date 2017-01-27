@@ -24,14 +24,15 @@ WHAT IS IT ?
 RNANR is a C program that reads an RNA sequence and computes all
 possible locally optimal secondary structures for this sequence (or
 optionnally just counting them). The folding model is based on the
-Turner model. It can be refined through a series of parameters. See
+Nussinov model. It can be refined through a series of parameters. See
 the section "OPTIONAL PARAMETERS - TOPOLOGY OF THE SECONDARY STRUCTURE".
 
 One of features of RNANR is also the ability to sample locally optimal
 secondary structures without redundancy. The core of the functionality
 is based on the computation of Boltzmann probability of each substructure
-and generating the complete structure based on them. To know more about it,
-please refer to the section "HOW DO I PERFORM SAMPLING?"
+using Turner energy model and generating the complete structure based on 
+them. To know more about it, please refer to the section "HOW DO I 
+PERFORM SAMPLING?"
 
 
 HOW TO INSTALL IT ?
