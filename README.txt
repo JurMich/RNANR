@@ -129,7 +129,7 @@ realistic structures.
      compatible with option -c. 
      
 -q : Maximum number of branches within multiloop. Default option is the
-	 length of entered sequence, which basically means there is no limit.
+     length of entered sequence, which basically means there is no limit.
 
 For example, the secondary structure below fullfils the following parameters. 
 
@@ -171,7 +171,7 @@ The program has two ways of influencing the temperature at which energy
 computation and sampling is done:
 
 - t : Changes the global temperature of the system to the value entered
-      in Celsuis. Default value is 37°C. 
+      in Celsius. Default value is 37°C. 
 
 - b : Scaling of temperature that does not affect the free energy of
       computed structures and only intervenes during the computation
@@ -206,7 +206,7 @@ KNOWN BUGS : The sampling starts to send invalid samples once their
 
 AUTHOR :  Helene Touzet (helene.touzet@univ-lille1.fr) 
 ------    Juraj Michalik (juraj.michalik@inria.fr)
-		  Yann Ponty	
+          Yann Ponty	
 
 Please send comments and bug reports to the address above.
 		  
