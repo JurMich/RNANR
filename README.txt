@@ -76,7 +76,7 @@ There are three ways to perform sampling using optional parameters:
 	 between 0 and 1.
 
 -s <int> -r : Similar to option -s, but with redundancy, and consequently
-			  without upper limit on number of structures returned.
+              without upper limit on number of structures returned.
 
 
 HOW TO GET SUPPLEMENTARY INFORMATION ABOUT ALL PARAMETERS ?
