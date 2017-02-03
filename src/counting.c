@@ -545,6 +545,7 @@ TYPE get_partition_function(plain_sequence * rna){
 	  }
 	  linktable = sort(linktable);
 	  rewire(x, y, linktable);
+	  free_linktab(linktable);
     }/* end for y */
   }/* end for x */
   
