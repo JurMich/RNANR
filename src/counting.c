@@ -19,6 +19,7 @@
 #include "rna.h"
 #include "base_pairs.h"
 #include "flat_structures.h"
+#include "sort.h"
 #include "stack.h"
 #include "counting.h"
 
@@ -229,7 +230,16 @@ void init_locopt_table(int n){
   } 
 } 
 
-
+// changes pointers within table (modifies directly flat_table via pointers)
+void rewire(int x, int y, linktab * linktable){
+	if(linktable->length > 0){
+		flat_table[x][y] = linktable->links[0].fcell;
+		for(int	i = 0; i<(linktable->length-1); i++){
+			linktable->links[i].fcell->next = linktable->links[i+1].fcell;
+		}
+		linktable->links[linktable->length-1].fcell->next = NULL;
+	}
+}
 
 
 TYPE count_all_locally_optimal_structures(plain_sequence * rna){
@@ -465,6 +475,7 @@ TYPE get_partition_function(plain_sequence * rna){
   
   for (x=rna->size; x>=1; x--){
     for (y=x+1; y<=rna->size; y++){
+	   linktab * linktable = start_linktab();
       if (flat_table[x][y]!=NULL){
 	current_flat_structure=flat_table[x][y];
 	do {
@@ -474,6 +485,7 @@ TYPE get_partition_function(plain_sequence * rna){
       if ((i==x) && (j==y) && !is_entirely_contained(i,j,rna)){ /* exception to cases where i=1 OR j=rna->size */
 	    /* thickness= 1 */
         partition_fci = apply_energy_term(stacking_energy(x-1,y+1), partition_function_table[x+1][y-1]);  /* yann  */ 
+        add_link_element(linktable, partition_fci, current_flat_structure);
 	  }
 	  else{
         partition_fci = empty_structure();
@@ -524,12 +536,15 @@ TYPE get_partition_function(plain_sequence * rna){
 	  }/* endif */
 	  /* next line is sum because we are adding energies for different secondary structures*/ 
 	  partition_function_table[x][y] = sum(partition_fci, partition_function_table[x][y]); /* yann */
+	  add_link_element(linktable, partition_fci, current_flat_structure);
 	  current_flat_structure=current_flat_structure->next;
 	}while (current_flat_structure != NULL);
       }/*endif else */
       else if ((x>1) && (y<rna->size)){ /* exception to cases where i=1 OR j=rna->size */
 	    partition_function_table[x][y] = apply_energy_term(hairpin_energy(x-1,y+1, rna), empty_structure());
 	  }
+	  linktable = sort(linktable);
+	  rewire(x, y, linktable);
     }/* end for y */
   }/* end for x */
   
@@ -556,9 +571,9 @@ void stochastic_backtrack_locally_optimal_structure_rec(int x, int y, plain_sequ
 /* DP_t and struc_count are references to execution time of DP and number of structures respectively */
 folding* stochastic_backtrack_locally_optimal_structures(int number_of_structures, plain_sequence * rna, 
  int is_non_redun, int use_timer, float zqlimit, int * struc_count, double * DP_t){
-  /*clock_t begin_time = clock();
+  clock_t begin_time = clock();
   clock_t current_time;
-  double time_spent;*/
+  double time_spent;
   /* Precompute/cache #locOpts */
   int i,j, continuing_on;
   TYPE max_struct, total_Boltzmann;
@@ -609,10 +624,10 @@ folding* stochastic_backtrack_locally_optimal_structures(int number_of_structure
     //printf("Total sum of chosen partition part: %0.3f \n", cumulative_en);
     folding_energy->energy_ref[i] = get_reference_energy(E_fold_cp, structure, rna);
     if(!is_non_redun) actual_node = traceback_to_root(actual_node, *energy);
-    /*current_time = clock();
+    current_time = clock();
     time_spent = (double)(current_time-begin_time) / CLOCKS_PER_SEC;
     printf("clock: - %f - ", time_spent);
-    print_structure(structure, *energy, get_reference_energy(E_fold_cp, structure, rna), rna); */
+    print_structure(structure, *energy, get_reference_energy(E_fold_cp, structure, rna), rna);
     free(energy);
     i+=1;
     if(zqlimit != 0){
