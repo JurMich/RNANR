@@ -16,10 +16,11 @@
            __  __  __  __  __  __  __  __  __  __  __  __  __  
           /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/
 	  
-	  		
 
-WHAT IS IT ?
-------------
+	  		
+\    /
+ \/\/HAT IS IT ?
+----------------
 
 RNANR is a C program that reads an RNA sequence and computes all
 possible locally optimal secondary structures for this sequence (or
@@ -35,15 +36,28 @@ them. To know more about it, please refer to the section "HOW DO I
 PERFORM SAMPLING?"
 
 
-HOW TO INSTALL IT ?
--------------------
+|_|
+| |OW TO INSTALL IT ?
+---------------------
+ _
+|_|
+| \EQUIREMENTS:
+---------------
+Before any installation of program is made, make sure you have ViennaRNA
+installed on your computer. The version tested is 2.2.8., however in the
+lastest version should be compatible too. 
+
+|
+|NSTALLATION:
+------------- 
 
 Go to the "src" directory, and type 'make'. This will create an executable
 file "locopt".
 
 
-HOW TO RUN IT ?
----------------
+|_|
+| |OW TO RUN IT ?
+-----------------
 
 You can try the program with the file "test_file.fa" provided in the
 samplel directory.
@@ -59,8 +73,10 @@ locally optimal secondary structures, that are represented in
 bracket-dot format. The number at the end of each line is the total
 number of base pairs in the structure.
 
-HOW DO I PERFORM SAMPLING ?
----------------------------
+
+|_|
+| |OW DO I PERFORM SAMPLING ?
+-----------------------------
 
 There are three ways to perform sampling using optional parameters:
 
@@ -79,8 +95,9 @@ There are three ways to perform sampling using optional parameters:
               without upper limit on number of structures returned.
 
 
-HOW TO GET SUPPLEMENTARY INFORMATION ABOUT ALL PARAMETERS ?
------------------------------------------------------------
+|_|
+| |OW TO GET SUPPLEMENTARY INFORMATION ABOUT ALL PARAMETERS ?
+-------------------------------------------------------------
 
 The parameters are described more in detail below this paragraph. 
 However, you can always print the manual included in the program itself
@@ -91,15 +108,18 @@ by simply typing:
 The help will be also printed if incorrect parameters or their values 
 were entered.  
 
-
-OPTIONAL PARAMETER - COUNTING
------------------------------
+ _
+| |
+|_|PTIONAL PARAMETER - COUNTING
+-------------------------------
 
 -c : Count the number of locally optimal secondary structures, instead
      of building them.
 
-OPTIONAL PARAMETERS - TOPOLOGY OF THE SECONDARY STRUCTURE
----------------------------------------------------------
+ _
+| |
+|_|PTIONAL PARAMETERS - TOPOLOGY OF THE SECONDARY STRUCTURE
+-----------------------------------------------------------
 
 The algorithm of locopt includes a series of combinatorial parameters,
 that allow to drastically reduce search space and to generate more
@@ -143,9 +163,10 @@ Maximum span: 37
 Minimum percentage of paired positions: 64
 Maximum degree of multiloop: 2
 
-
-OPTIONAL PARAMETERS - SET OF BASE PAIRS
----------------------------------------
+ _
+| |
+|_|PTIONAL PARAMETERS - SET OF BASE PAIRS
+-----------------------------------------
 
 By default, the set of all possible base pairs is composed of all A-U,
 C-G and G-U base pairs present in the RNA sequence. It is also
@@ -164,8 +185,11 @@ contain as many lines as necessary.
      complement to A-U, C-G and G-U base pairs present in the RNA
      sequence.
 
-OPTIONAL PARAMETERS - TEMPERATURE SCALING
------------------------------------------
+
+ _
+| |
+|_|PTIONAL PARAMETERS - TEMPERATURE SCALING
+-------------------------------------------
 
 The program has two ways of influencing the temperature at which energy 
 computation and sampling is done:
@@ -178,8 +202,10 @@ computation and sampling is done:
       of Boltzmann probabilities. Has positive values. Higher values can
       be used to randomize sampling. Default is 1.0
 
-OPTIONAL PARAMETERS - OUTPUT FILE
----------------------------------
+ _
+| |
+|_|PTIONAL PARAMETERS - OUTPUT FILE
+-----------------------------------
 
 By default, the result is displayed on the standart output. 
 
@@ -187,7 +213,9 @@ By default, the result is displayed on the standart output.
      secondary structures. Not compatible with option -c or sampling 
      options
      
-OPTIONAL PARAMETERS - COMPUTING DIFFERENT VALUES
+ _
+| |
+|_|PTIONAL PARAMETERS - COMPUTING DIFFERENT VALUES
 ------------------------------------------------
 
 Besides the count of all locally optimal secondary structures, there
@@ -199,14 +227,17 @@ the structures of entered sequence:
       
 - u : Computes the number of all flat structures and exits. 
 
-KNOWN BUGS : The sampling starts to send invalid samples once their 
-----------   Boltzmann probability starts getting low. This is caused
-             by numerical imprecision. Fix is on their way.
 
+|/
+|\NOWN BUGS : The sampling starts to send invalid samples once their 
+------------- Boltzmann probability starts getting low. This is caused
+              by numerical imprecision. Fix is on their way.
 
-AUTHOR :  Helene Touzet (helene.touzet@univ-lille1.fr) 
-------    Juraj Michalik (juraj.michalik@inria.fr)
-          Yann Ponty	
+ _
+|_|
+| |UTHOR :  Helene Touzet (helene.touzet@univ-lille1.fr) 
+----------  Juraj Michalik (juraj.michalik@inria.fr)
+            Yann Ponty (yann.ponty@lix.polytechnique.fr)
 
 Please send comments and bug reports to the address above.
 		  
