@@ -44,7 +44,7 @@ PERFORM SAMPLING?"
 | \EQUIREMENTS:
 ---------------
 Before any installation of program is made, make sure you have ViennaRNA
-installed on your computer. The version tested is 2.2.8., however in the
+installed on your computer. The version tested is 2.2.8., however the
 lastest version should be compatible too. 
 
 |
@@ -87,9 +87,9 @@ There are three ways to perform sampling using optional parameters:
      specifying so.
 
 -z : Performs a non-redundant sampling, but unlike the previous option,
-	 the number of samples corresponds to attained coverage (the sum of
-	 Boltzmann probabilities of returned samples). Has to have value 
-	 between 0 and 1.
+     the number of samples corresponds to attained coverage (the sum of
+     Boltzmann probabilities of returned samples). Has to have value 
+     between 0 and 1.
 
 -s <int> -r : Similar to option -s, but with redundancy, and consequently
               without upper limit on number of structures returned.
