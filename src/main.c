@@ -13,8 +13,7 @@
 #include "base_pairs.h"
 #include "flat_structures.h"
 #include "locally_optimal_structures.h"
-#include "tree.h"
-#include "counting.h"
+#include "counting_double.h"
 
 int FILEBP; 
 int FILEOUT;
@@ -363,8 +362,10 @@ int main(int argc, char **argv){
     } 
   }
   else if(PARTITION){
-	if (TIMEINFO) clock_gettime(CLOCK_MONOTONIC, &start_time);  
-	printf("Boltzmann's partition function: %.9f \n", get_partition_function(rna_seq));
+	if (TIMEINFO) clock_gettime(CLOCK_MONOTONIC, &start_time);
+	double partition_fun;
+	get_partition_function_double(&partition_fun, rna_seq);
+	printf("Boltzmann's partition function: %.9f \n", partition_fun);
 	if(TIMEINFO){
 	  clock_gettime(CLOCK_MONOTONIC, &end_time);
       DP_t = (double)(end_time.tv_sec - start_time.tv_sec) + (double)(end_time.tv_nsec - start_time.tv_nsec)/1.0e9 ;
@@ -373,24 +374,24 @@ int main(int argc, char **argv){
     } 
   }
   else if(FLATS){
-	printf("Total number of non-empty flat structures: %d \n", count_all_flat_structures(rna_seq));  
+	printf("Total number of non-empty flat structures: %ld \n", count_all_flat_structures(rna_seq));  
   }
   else if(GRAMMAR){
 	printf("All flat structures are exported to file in adapted grammar. Terminal output also available below: \n\n");
-	print_all_flat_structures_pile(rna_seq, nameFileGrammar); 
+	print_all_flat_structures_pile_double(rna_seq, nameFileGrammar); 
   }	  
   else{ 
     if (SAMPLING>0){
       /* stochastic backtrack*/ 
       int i;
-      folding* folded_rna;
+      folding_d* folded_rna;
       int struc_count = 0;
       if (TIMEINFO) clock_gettime(CLOCK_MONOTONIC, &start_time);  
-      folded_rna = stochastic_backtrack_locally_optimal_structures(SAMPLING, rna_seq, NONREDUN, TIMEINFO, 0, &struc_count, &DP_t);
+      folded_rna = stochastic_backtrack_locally_optimal_structures_double(SAMPLING, rna_seq, NONREDUN, TIMEINFO, 0, &struc_count, &DP_t);
       if (TIMEINFO) clock_gettime(CLOCK_MONOTONIC, &end_time);
       display_plain_sequence(rna_seq); 
       for (i=1;i<=SAMPLING;i++){
-        print_structure(folded_rna->structures[i], folded_rna->energies[i], folded_rna->energy_ref[i], rna_seq);
+        print_structure_double(folded_rna->structures[i], folded_rna->part_fcis[i], folded_rna->energy_ref[i], rna_seq);
       }
       if(TIMEINFO){
         print_time_general(rna_seq, BP_t, flat_t);
@@ -400,14 +401,14 @@ int main(int argc, char **argv){
     else if(ZSAMPLING>0){
       /* stochastic backtrack*/ 
       int i;
-      folding* folded_rna;
+      folding_d* folded_rna;
       int struc_count = 0;
       if (TIMEINFO) clock_gettime(CLOCK_MONOTONIC, &start_time);  
-      folded_rna = stochastic_backtrack_locally_optimal_structures(SAMPLING, rna_seq, NONREDUN, TIMEINFO, ZSAMPLING, &struc_count, &DP_t);
+      folded_rna = stochastic_backtrack_locally_optimal_structures_double(SAMPLING, rna_seq, NONREDUN, TIMEINFO, ZSAMPLING, &struc_count, &DP_t);
       if (TIMEINFO) clock_gettime(CLOCK_MONOTONIC, &end_time);
       display_plain_sequence(rna_seq);
       for (i=1;i<=struc_count;i++){
-        print_structure(folded_rna->structures[i], folded_rna->energies[i], folded_rna->energy_ref[i], rna_seq);
+        print_structure_double(folded_rna->structures[i], folded_rna->part_fcis[i], folded_rna->energy_ref[i], rna_seq);
       }
       if(TIMEINFO){
         print_time_general(rna_seq, BP_t, flat_t);

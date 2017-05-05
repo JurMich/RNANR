@@ -1,13 +1,16 @@
 /**************************************************/
-/*                     tree                       */
-/**************************************************/
+/*                     tree                      */
+/************************************************/
 
-#include <ctype.h>
-#include <stdio.h>
-#include <math.h>
-#include <stdlib.h>
-#include <string.h>
-#include "tree.h"
+// type definition 
+typedef struct tr_node tr_node;
+typedef struct ll_node ll_node;
+
+struct tr_node {int id; tr_node * parent; ll_node * ll_start; TYPE weight;};
+struct ll_node {int id; ll_node * ll_next; tr_node * next_node;};
+
+
+/***********tree manipulation************/
 
 // creates new tree node with undefined weight with parent node
 tr_node * create_tr_node(int id, tr_node * parent){
@@ -15,7 +18,7 @@ tr_node * create_tr_node(int id, tr_node * parent){
   new_tr_node->id = id;
   new_tr_node->parent = parent;
   new_tr_node->ll_start = NULL;
-  new_tr_node->weight = 0;
+  SET_TYPE_VAL_FROM_DOUBLE(new_tr_node->weight, 0.);
   return new_tr_node;
 }
 
@@ -76,31 +79,43 @@ tr_node * add_if_nexists(int id, tr_node*last_node){
   return new_tr_node;  	
 }
 
-// returns weight of an element if it exists; otherwise returns 0
-TYPE tr_node_weight(int id, tr_node * last_node){
+/* sets first param to weight of an element if it exists; otherwise sets to 0
+ * These hijinks are necessary to make setting type to mpfr_t possible
+ *
+ * = TYPE tr_node_weight(int id, tr_node * last_node)
+ */ 
+void tr_node_weight(TYPE * returned_val, int id, tr_node * last_node){
   ll_node *ptr = last_node->ll_start;
   while(ptr){
-    if(ptr->id == id)
-      return ptr->next_node->weight;
+    if(ptr->id == id){
+      SET_TYPE_VAL(*returned_val, ptr->next_node->weight);
+      return;
+    }
     ptr = ptr->ll_next;
   }
-  return 0.;
+  SET_TYPE_VAL_FROM_DOUBLE(*returned_val, 0.);
 }
 
-// returns sum of all weights for given parent
-TYPE total_weight_par(tr_node * last_node){
+/* sets first param to sum of all weights for given parent
+ * 
+ * = TYPE total_weight_par(tr_node * last_node)
+ */
+void total_weight_par(TYPE * returned_val, tr_node * last_node){
   ll_node *ptr = last_node->ll_start;
-  TYPE weight_sum = 0.;
+  TYPE weight_sum;
+  INIT(weight_sum);
+  SET_TYPE_VAL_FROM_DOUBLE(weight_sum, 0.);
   while(ptr){
-    weight_sum += ptr->next_node->weight;
+    ADD(weight_sum, ptr->next_node->weight);
     ptr = ptr->ll_next;
   }
-  return weight_sum;
+  SET_TYPE_VAL(*returned_val, weight_sum);
+  CLEAR(weight_sum);
 }
 
 // updates weight of a given node
 void update_weight(tr_node * node, TYPE weight){
-  node->weight += weight;
+  ADD(node->weight, weight);
 }
 
 // tracebacks to root while updating values for each node passed

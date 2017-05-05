@@ -1,74 +1,71 @@
 /**************************************************/
-/*                   counting                     */
-/**************************************************/
-
-#include <ctype.h>
-#include <stdio.h>
-#include <math.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include <ViennaRNA/data_structures.h>
-#include <ViennaRNA/params.h>
-#include <ViennaRNA/utils.h>
-#include <ViennaRNA/eval.h>
-#include <ViennaRNA/fold.h>
-#include <ViennaRNA/part_func.h>
-#include <ViennaRNA/loop_energies.h>
-#include "tree.h"
-#include "rna.h"
-#include "base_pairs.h"
-#include "flat_structures.h"
-#include "sort.h"
-#include "stack.h"
-#include "counting.h"
-
-TYPE ** number_of_locopt_structures;
-TYPE ** partition_function_table; 
-
-typedef struct {int flat_start; int flat_end;} flat_pair;
- 
-/* parameters related with Vienna package*/
-vrna_fold_compound_t *E_fold_cp;
-
+/*                   counting                    */
+/************************************************/
 
 /********************************************/
-/*    operators for the locopt structures   */
-/********************************************/
+/*    operators for the locopt structures  */
+/******************************************/
 
-TYPE sum(TYPE a, TYPE b){
-  return a+b;
+/*
+TYPE * apply_energy_term(double dG, TYPE val){ 
+  // modifying term for energy (Boltzmann factor)
+  //printf("reformatos: %f -> %f\n", dG, exp(-dG/RT));
+  TYPE dG_cast, RT_cast, Boltzmann_factor;
+  INIT(dG_cast);
+  INIT(RT_cast);
+  INIT(Boltzmann_factor);
+  SET_TYPE_VAL_FROM_DOUBLE(dG_cast, dG); // casts dG to TYPE
+  SET_TYPE_VAL_FROM_DOUBLE(RT_cast, RT); // casts RT to TYPE
+  
+  SET_TYPE_VAL(Boltzmann_factor, -dG_cast);
+  DIVIDE(Boltzmann_factor, RT_cast);
+  EXPONENT(Boltzmann_factor);
+  MULTIPLY(Boltzmann_factor, val);
+  // cleaning 
+  CLEAR(dG_cast); 
+  CLEAR(RT_cast);
+  //printf("reformatos: %f -> %f\n", dG, exp(-dG/RT));
+  return Boltzmann_factor;   //Boltzmann's cte already contains temperature 
+}
+*/
+
+// computes Boltzmann factor and passes its value by reference to first parameter
+void apply_energy_term(TYPE * returned_value, double dG, TYPE val){ 
+  // modifying term for energy (Boltzmann factor)
+  //printf("reformatos: %f -> %f\n", dG, exp(-dG/RT));
+  TYPE dG_cast, RT_cast, Boltzmann_factor;
+  INIT(dG_cast);
+  INIT(RT_cast);
+  INIT(Boltzmann_factor);
+  SET_TYPE_VAL_FROM_DOUBLE(dG_cast, dG); // casts dG to TYPE
+  SET_TYPE_VAL_FROM_DOUBLE(RT_cast, RT); // casts RT to TYPE
+  
+  SET_TYPE_VAL(Boltzmann_factor, -dG_cast);
+  DIVIDE(Boltzmann_factor, RT_cast);
+  EXPONENT(Boltzmann_factor);
+  MULTIPLY(Boltzmann_factor, val);
+  //printf("reformatos: %f -> %f\n", dG, exp(-dG/RT));
+  SET_TYPE_VAL(*returned_value, Boltzmann_factor);   //Boltzmann's cte already contains temperature
+  // cleaning 
+  CLEAR(dG_cast); 
+  CLEAR(RT_cast); 
+  CLEAR(Boltzmann_factor);
 }
 
-TYPE product(TYPE a, TYPE b){
-  return a*b; 
-}
-
-TYPE empty_set(){ /* identity element for PLUS */
-  return 0;
-}
-
-TYPE empty_structure(){ /* identity element for PRODUCT */
-  return 1;
-}
-
-TYPE apply_energy_term(TYPE dG, TYPE val){ 
-  /* modifying term for energy (Boltzmann factor)*/
-  return exp(-dG/RT)*val;   /*Boltzmann's cte already contains temperature */
-  return dG*val;
-}
 
 /**********    end operators    ***********/
 
 
 /********************************************/
-/*       structure and misc. utilities      */
-/********************************************/
-void print_structure(char * structure, TYPE energy, TYPE energy_ref, plain_sequence * rna){
+/*       structure and misc. utilities     */
+/******************************************/
+void print_structure(char * structure, TYPE part_fci, TYPE energy_ref, plain_sequence * rna){
   int i;
   for (i=1; i<=rna->size; i++)
     printf("%c", structure[i]);
-  printf(" - Free Energy : %.3f \n", (-RT*log(energy))/100);
+  printf(" - Free Energy : ");
+  TYPE_PRINT((-RT*log(part_fci))/100); // prints
+  printf("\n");
 }
 
 void add_base_pair(int i, int j, char * structure){
@@ -108,9 +105,6 @@ int get_type(char base_5, char base_3){ /* base_5 - from 5' end, base_3 - from 3
   return type;
 }
 
-TYPE random_number(TYPE upper_bound){
-  return (double)rand()*upper_bound/((double)RAND_MAX + 1.);
-}
 
 /* prints a character to terminal repeatedly*/
 void repeat_print(char*to_print, int n_repeats){
@@ -134,15 +128,15 @@ int is_in_table(int flat_start, int flat_end, flat_pair * pile, int pile_size){
 /************ Free energy utilities ************/
 
 /* Energy of (i+1,j-1) stacking over (i,j), i+1<j-1 */
-TYPE stacking_energy(int i, int j){
-  TYPE stack_energy;
+double stacking_energy(int i, int j){
+  double stack_energy;
   stack_energy = vrna_E_stack(E_fold_cp, i, j);  /*ViennaRNA*/
   return stack_energy;
 }
 
 /* Energy of helix spanning from (i,j) to (i+length,j-length), i+length<j-length */
-TYPE helix_energy(int i, int j, int length){
-  TYPE dG;
+double helix_energy(int i, int j, int length){
+  double dG;
   int k;
   
   dG = 0.;
@@ -155,9 +149,9 @@ TYPE helix_energy(int i, int j, int length){
 /* Energy of multiloop with alpha helixes and beta unpaired bases 
  * - si - a table of a 5' nucleotide coordinates next to multiloop
  * - sj - a table of a 3' nucleotide coordinates next to multiloop  */
-TYPE multiloop_energy(int alpha, int beta, int *ptypes, int *si, int *sj){
+double multiloop_energy(int alpha, int beta, int *ptypes, int *si, int *sj){
   	int i, closing_pty, unpaired_pty; /*to extract from Vienna package*/
-  	TYPE mtloop_E;
+  	double mtloop_E;
   	closing_pty = E_fold_cp->params->MLclosing; /* ML closing penalty */
   	unpaired_pty = E_fold_cp->params->MLbase; /* unpaired base penalty */
   	mtloop_E = closing_pty + unpaired_pty*beta;
@@ -169,8 +163,8 @@ TYPE multiloop_energy(int alpha, int beta, int *ptypes, int *si, int *sj){
 }
 
 /* Energy of internal/bulge loop defined by two base pairs (i,l) and (j,k), i<k<l<j */
-TYPE internal_loop_energy(int i, int k, int l, int j, plain_sequence *rna){
-  TYPE it_energy;
+double internal_loop_energy(int i, int k, int l, int j, plain_sequence *rna){
+  double it_energy;
   int size1, size2, ptype1, ptype2, base_i, base_j, base_k, base_l;
   
   size1 = k-i-1;
@@ -186,8 +180,8 @@ TYPE internal_loop_energy(int i, int k, int l, int j, plain_sequence *rna){
 }
 
 /* computes energy of a hairpin */
-TYPE hairpin_energy(int i, int j, plain_sequence * rna){
-  TYPE hairpin_energy;
+double hairpin_energy(int i, int j, plain_sequence * rna){
+  double hairpin_energy;
   int hsize, ptype;
   char *hseq; /* sequence of unpaired bases in hairpin */
   hsize = j - i - 1;
@@ -203,8 +197,8 @@ TYPE hairpin_energy(int i, int j, plain_sequence * rna){
 }
 
 /* computes energy of an exterior loop */
-TYPE ext_loop_energy(int i, int j, plain_sequence *rna){
-  TYPE ext_loop_energy;
+double ext_loop_energy(int i, int j, plain_sequence *rna){
+  double ext_loop_energy;
   int ptype, seq_i, seq_j;
   ptype = get_type(rna->label[i], rna->label[j]);
   seq_i = (i > 1) ? E_fold_cp->sequence_encoding[i-1] : -1;
@@ -221,11 +215,11 @@ int is_entirely_contained(int i, int j, plain_sequence * rna){
 
 void init_locopt_table(int n){
   int x, y; 
-  number_of_locopt_structures=(TYPE **) malloc ((n+1)*sizeof(TYPE *));
+  number_of_locopt_structures=(long int **) malloc ((n+1)*sizeof(long int *));
   for (x=0; x<=n; x++){
-    number_of_locopt_structures[x]=(TYPE *) malloc ((n+1)*sizeof(TYPE));
+    number_of_locopt_structures[x]=(long int *) malloc ((n+1)*sizeof(long int));
     for (y=0; y<=n; y++){
-      number_of_locopt_structures[x][y]= empty_set();/* yann */
+      number_of_locopt_structures[x][y]= 0;/* yann */
     }
   } 
 } 
@@ -242,9 +236,8 @@ void rewire(int x, int y, linktab * linktable){
 }
 
 
-TYPE count_all_locally_optimal_structures(plain_sequence * rna){
-  TYPE n;
-  int x, y, i, j;
+long int count_all_locally_optimal_structures(plain_sequence * rna){
+  int n, x, y, i, j;
   flat_cell * current_flat_structure;
   int current_base_pair;
   int thickness;
@@ -265,7 +258,7 @@ TYPE count_all_locally_optimal_structures(plain_sequence * rna){
 	  else{
         /* TODO: Energy contribution ( distinguish Multiloop + internal loops) */
         /* TODO: Auxiliary function to compute overall contribution of flat structure*/
-        n=empty_structure(); /* yann */
+        n=1; /* yann */
 	    while(current_base_pair != 0){
 	      i=get_flat_structure_start(current_base_pair);
 	      j=get_flat_structure_end(current_base_pair);
@@ -273,27 +266,27 @@ TYPE count_all_locally_optimal_structures(plain_sequence * rna){
 	      thickness=get_BP(i,j); 
 	      if (thickness>MIN_HELIX_LENGTH) 
 		thickness=MIN_HELIX_LENGTH;
-	      n = product(n, number_of_locopt_structures[i+thickness][j-thickness]); /* yann */
+	      n *= number_of_locopt_structures[i+thickness][j-thickness]; /* yann */
 	      current_base_pair=get_flat_structure_suffix(current_base_pair);
 	    } /* end while */
 	  }/* endif */
-	  number_of_locopt_structures[x][y] = sum(n,number_of_locopt_structures[x][y]); /* yann */
+	  number_of_locopt_structures[x][y] += n; /* yann */
 	  current_flat_structure=current_flat_structure->next;
 	}while (current_flat_structure != NULL);
       }/*endif else */
       else{
-	number_of_locopt_structures[x][y]=empty_structure(); 
+	number_of_locopt_structures[x][y]=1; 
       }
     }/* end for y */
   }/* end for x */
-  printf("\nNumber of structures: %ld\n", (long int)number_of_locopt_structures[1][rna->size]); 
+  printf("\nNumber of structures: %ld\n", number_of_locopt_structures[1][rna->size]); 
   return number_of_locopt_structures[1][rna->size];
 }
 
 /* stacks every flat structure into a pile and counts them */
-int count_all_flat_structures(plain_sequence * rna){
-	int x, y, i, j;
-	int n_flat = 0;
+long int count_all_flat_structures(plain_sequence * rna){
+	long int x, y, i, j;
+	long int n_flat = 0;
 	flat_cell * current_flat_structure;
 	int current_base_pair;
 	int thickness;
@@ -449,14 +442,19 @@ void init_partition_table(int n){
   for (x=0; x<=n; x++){
     partition_function_table[x]=(TYPE *) malloc ((n+1)*sizeof(TYPE));
     for (y=0; y<=n; y++){
-      partition_function_table[x][y]= empty_set();/* yann */
+	  INIT(partition_function_table[x][y]);	
+      SET_TYPE_VAL_FROM_DOUBLE(partition_function_table[x][y], 0.);/* yann */
     }
   } 
 }
 
 
-TYPE get_partition_function(plain_sequence * rna){
+void get_partition_function(TYPE * partition_function, plain_sequence * rna){
   TYPE partition_fci; /* terms of partition function */
+  TYPE intermediate; /* stores intermediate values for partition function */
+  INIT(partition_fci);
+  INIT(intermediate);
+  
   int x, y, i, j, i0; 
   flat_cell * current_flat_structure;
   int current_base_pair;
@@ -475,7 +473,7 @@ TYPE get_partition_function(plain_sequence * rna){
   
   for (x=rna->size; x>=1; x--){
     for (y=x+1; y<=rna->size; y++){
-	   linktab * linktable = start_linktab();
+	   linktab * linktable = start_linktab(); // create a table of links to be sorted after
       if (flat_table[x][y]!=NULL){
 	current_flat_structure=flat_table[x][y];
 	do {
@@ -484,11 +482,11 @@ TYPE get_partition_function(plain_sequence * rna){
 	  j=get_flat_structure_end(current_base_pair); 
       if ((i==x) && (j==y) && !is_entirely_contained(i,j,rna)){ /* exception to cases where i=1 OR j=rna->size */
 	    /* thickness= 1 */
-        partition_fci = apply_energy_term(stacking_energy(x-1,y+1), partition_function_table[x+1][y-1]);  /* yann  */ 
-        add_link_element(linktable, partition_fci, current_flat_structure);
+	    apply_energy_term(&partition_fci, stacking_energy(x-1,y+1), partition_function_table[x+1][y-1]); /* yann */
+        add_link_element(linktable, DOUBLE_CAST(partition_fci), current_flat_structure);
 	  }
 	  else{
-        partition_fci = empty_structure();
+		SET_TYPE_VAL_FROM_DOUBLE(partition_fci, 1.);  
         alpha = 0;
         beta = 0;
         i0 = x - 1;
@@ -504,7 +502,7 @@ TYPE get_partition_function(plain_sequence * rna){
 	      j=get_flat_structure_end(current_base_pair);
 	      /* external loop contribution */
 		  if(is_entirely_contained(x,y,rna)){
-	     	 partition_fci = apply_energy_term(ext_loop_energy(i, j, rna), partition_fci);
+			 apply_energy_term(&partition_fci, ext_loop_energy(i, j, rna), partition_fci); 
 		  }
 	      get_flat_structure_suffix(current_base_pair);
 	      ptypes =  (int *) realloc (ptypes, (alpha+1)*sizeof(int));
@@ -517,46 +515,52 @@ TYPE get_partition_function(plain_sequence * rna){
 	      i0 = j;
 	      thickness=get_BP(i,j);
 	      if (thickness>MIN_HELIX_LENGTH) 
-		thickness=MIN_HELIX_LENGTH;   
-	      partition_fci = product(partition_fci, apply_energy_term(helix_energy(i,j,thickness),\
-	       partition_function_table[i+thickness][j-thickness])); /* yann */
+		thickness=MIN_HELIX_LENGTH;
+		  apply_energy_term(&intermediate, helix_energy(i,j,thickness), partition_function_table[i+thickness][j-thickness]);
+		  MULTIPLY(partition_fci, intermediate);
 	      current_base_pair = get_flat_structure_suffix(current_base_pair);
 	    } /* end while */
 	    if((x != 1) || (y != rna->size)){  
 	      if(alpha == 1){ /* internal loop or bulge since stack was taken care of before*/
-            partition_fci = apply_energy_term(internal_loop_energy(x-1, i, j, y+1, rna), partition_fci); 
+			apply_energy_term(&partition_fci, internal_loop_energy(x-1, i, j, y+1, rna), partition_fci);  
 		  }else{ /*multiloop*/
 			beta += (y - i0);
-		    partition_fci = apply_energy_term(multiloop_energy(alpha, beta, ptypes, si, sj), partition_fci);
+			apply_energy_term(&partition_fci, multiloop_energy(alpha, beta, ptypes, si, sj), partition_fci);
 		  }	
 		}
 		free(ptypes);
 		free(si);
 		free(sj);
 	  }/* endif */
-	  /* next line is sum because we are adding energies for different secondary structures*/ 
-	  partition_function_table[x][y] = sum(partition_fci, partition_function_table[x][y]); /* yann */
-	  add_link_element(linktable, partition_fci, current_flat_structure);
+	  /* next line is sum because we are adding energies for different secondary structures*/
+	  ADD(partition_function_table[x][y], partition_fci);
+	  add_link_element(linktable, DOUBLE_CAST(partition_fci), current_flat_structure); // adds link to the existing link table
 	  current_flat_structure=current_flat_structure->next;
 	}while (current_flat_structure != NULL);
       }/*endif else */
       else if ((x>1) && (y<rna->size)){ /* exception to cases where i=1 OR j=rna->size */
-	    partition_function_table[x][y] = apply_energy_term(hairpin_energy(x-1,y+1, rna), empty_structure());
+		SET_TYPE_VAL_FROM_DOUBLE(intermediate, 1.);  
+		apply_energy_term(&partition_function_table[x][y], hairpin_energy(x-1,y+1, rna), intermediate);
 	  }
 	  linktable = sort(linktable);
 	  rewire(x, y, linktable);
 	  free_linktab(linktable);
     }/* end for y */
   }/* end for x */
+   
+  SET_TYPE_VAL(* partition_function, partition_function_table[1][rna->size]);
   
+  // freeing memory
+  CLEAR(partition_fci);
+  CLEAR(intermediate);
+  CLEAR(one);
   free(rna_seq); 
-  return partition_function_table[1][rna->size];
 }
 
 /* probabilistic backtracking of random sampling (redundant and non-redundant) */
 
 /* calculates energy of a structure (for comparison) */
-TYPE get_reference_energy(vrna_fold_compound_t *E_fold_cp, char * structure, plain_sequence * rna){
+float get_reference_energy(vrna_fold_compound_t *E_fold_cp, char * structure, plain_sequence * rna){
 	char *fold = (char*) malloc(sizeof(char)*(rna->size+1));
     strncpy(fold, structure+1, rna->size);
     fold[rna->size] = '\0';
@@ -567,26 +571,37 @@ TYPE get_reference_energy(vrna_fold_compound_t *E_fold_cp, char * structure, pla
 
 
 void stochastic_backtrack_locally_optimal_structure_rec(int x, int y, plain_sequence * rna, char * structure, 
- double * energy, tr_node ** actual_node, TYPE * part_fci);
+ TYPE * energy, tr_node ** actual_node, TYPE * denomin);
 
 /* DP_t and struc_count are references to execution time of DP and number of structures respectively */
-folding* stochastic_backtrack_locally_optimal_structures(int number_of_structures, plain_sequence * rna, 
+FOLDING* stochastic_backtrack_locally_optimal_structures(int number_of_structures, plain_sequence * rna, 
  int is_non_redun, int use_timer, float zqlimit, int * struc_count, double * DP_t){
   /*clock_t begin_time = clock();
   clock_t current_time;
   double time_spent;*/
   /* Precompute/cache #locOpts */
+  
   int i,j, continuing_on;
-  TYPE max_struct, total_Boltzmann;
+  long int max_struct;
+  TYPE total_Boltzmann;
+  TYPE cumulative_parf;
+  TYPE coverage; // % of Boltzmann factor that is covere by currently returned solution
+  TYPE* denomin  = (TYPE*) malloc (sizeof(TYPE));  // denominator used to ponderate the weight of forbidden structures
+  INIT(total_Boltzmann);
+  INIT(cumulative_parf);
+  SET_TYPE_VAL_FROM_DOUBLE(cumulative_parf, 0.);
+  INIT(COVERAGE);
+  INIT(*denomin);
+  
   /* timer-related variables */
   struct timespec start_time, end_time;
-  TYPE cumulative_en;
+  
   /* struct holding RNA structure and energy*/
-  folding *folding_energy = (folding*)malloc (sizeof(folding));
-  max_struct = (TYPE)count_all_locally_optimal_structures(rna);
+  FOLDING *folding_energy = (FOLDING*)malloc (sizeof(FOLDING));
+  max_struct = count_all_locally_optimal_structures(rna);
   if((max_struct < number_of_structures) && !(is_non_redun)){
 	 printf("Error: maximum number of structures is %ld. Use number lower or equal to this with option -s.\n\
-	 Alternatively, you can also use option -z for non-redundant sampling. \n\n", (long int)max_struct); 
+	 Alternatively, you can also use option -z for non-redundant sampling. \n\n", max_struct); 
 	 exit(EXIT_SUCCESS);
   } 
   
@@ -594,10 +609,10 @@ folding* stochastic_backtrack_locally_optimal_structures(int number_of_structure
   tr_node * non_red_tree = create_root();
   tr_node * actual_node = non_red_tree; // pointer to actual node
     
-  total_Boltzmann = get_partition_function(rna);
+  get_partition_function(&total_Boltzmann, rna); // total Boltzmann will be set to value of partition function computed by this fci
   folding_energy->structures = (char**) malloc (sizeof(char*));
-  folding_energy->energies = (TYPE*) malloc (sizeof(TYPE));
-  folding_energy->energy_ref = (TYPE*) malloc (sizeof(TYPE));
+  folding_energy->part_fcis = (double*) malloc (sizeof(double));
+  folding_energy->energy_ref = (float*) malloc (sizeof(float));
   if(use_timer) clock_gettime(CLOCK_MONOTONIC, &start_time);
   /* this is basically fancy 'for' loop, since it allows two different types of samplings without much redundancy */
   i = 1;
@@ -605,34 +620,37 @@ folding* stochastic_backtrack_locally_optimal_structures(int number_of_structure
   while(continuing_on){
 	//printf("\nGenerating new structure: %d\n", i);
 	folding_energy->structures = (char**) realloc (folding_energy->structures, (i+1)*sizeof(char*));
-    folding_energy->energies = (TYPE*) realloc (folding_energy->energies, (i+1)*sizeof(TYPE));
-    folding_energy->energy_ref = (TYPE*) realloc (folding_energy->energy_ref, (i+1)*sizeof(TYPE));
-	folding_energy->energies[i] = empty_structure();
+    folding_energy->part_fcis = (TYPE*) realloc (folding_energy->part_fcis, (i+1)*sizeof(TYPE));
+    folding_energy->energy_ref = (float*) realloc (folding_energy->energy_ref, (i+1)*sizeof(float));
+	folding_energy->part_fcis[i] = 1.;
 	
     char* structure;
-    TYPE* energy  = (TYPE*) malloc (sizeof(TYPE));
-    TYPE* part_fci  = (TYPE*) malloc (sizeof(TYPE));
+    TYPE* partit_fci  = (TYPE*) malloc (sizeof(TYPE));
+    INIT(*partit_fci);
     structure = (char*) malloc ((rna->size+1)*sizeof(char));
     for (j=1;j<=rna->size;j++){
       structure[j] = '.';
     }
-    *energy = 1.;
-    *part_fci = partition_function_table[1][rna->size]; // = Z
-    stochastic_backtrack_locally_optimal_structure_rec(1, rna->size, rna, structure, energy, &actual_node, part_fci);   
+    SET_TYPE_VAL_FROM_DOUBLE(*partit_fci, 1.);
+    SET_TYPE_VAL(*denomin, partition_function_table[1][rna->size]); // = Z
+    stochastic_backtrack_locally_optimal_structure_rec(1, rna->size, rna, structure, partit_fci, &actual_node, denomin);   
     folding_energy->structures[i] = structure;
-    folding_energy->energies[i] = *energy;
-    cumulative_en += (*energy);
-    //printf("Total sum of chosen partition part: %0.3f \n", cumulative_en);
+    SET_TYPE_VAL(folding_energy->part_fcis[i], *partit_fci);
+    ADD(cumulative_parf, *partit_fci);
+    //printf("Total sum of chosen partition part: %0.3f \n", cumulative_parf);
     folding_energy->energy_ref[i] = get_reference_energy(E_fold_cp, structure, rna);
-    if(!is_non_redun) actual_node = traceback_to_root(actual_node, *energy);
+    if(!is_non_redun) actual_node = traceback_to_root(actual_node, *partit_fci);
     /*current_time = clock();
     time_spent = (double)(current_time-begin_time) / CLOCKS_PER_SEC;
     printf("clock: - %f - ", time_spent);
     print_structure(structure, *energy, get_reference_energy(E_fold_cp, structure, rna), rna);*/
-    free(energy);
+    CLEAR(*partit_free);
+    free(partit_fci);
     i+=1;
     if(zqlimit != 0){
-		if(zqlimit <= (float)cumulative_en/(float)total_Boltzmann){
+		SET_TYPE_VAL(coverage, cumulative_parf);
+		DIVIDE(coverage, total_Boltzmann);
+		if((double)zqlimit <= DOUBLE_CAST(coverage)){
 			continuing_on = 0;
 			*struc_count = i-1;
 		}
@@ -646,11 +664,15 @@ folding* stochastic_backtrack_locally_optimal_structures(int number_of_structure
     clock_gettime(CLOCK_MONOTONIC, &end_time);
     *DP_t = (double)(end_time.tv_sec - start_time.tv_sec) + (double)(end_time.tv_nsec - start_time.tv_nsec)/1.0e9 ;
   } 
+  CLEAR(total_Boltzmann);
+  CLEAR(cumuklative_parf);
+  CLEAR(coverage);
+  CLEAR(denomin);
   return folding_energy;
 }
 
 void stochastic_backtrack_flat_structure_rec(flat_cell * current_flat_structure, plain_sequence * rna, 
- char * structure, double * energy, tr_node ** actual_node, TYPE * part_fci){
+ char * structure, TYPE * partit_fci, tr_node ** actual_node, TYPE * denomin){
   int current_base_pair;
   int i, j; 
   int thickness; 
@@ -663,31 +685,52 @@ void stochastic_backtrack_flat_structure_rec(flat_cell * current_flat_structure,
     if (thickness>MIN_HELIX_LENGTH) 
       thickness=MIN_HELIX_LENGTH;
     add_helix(i, j, thickness, structure);
-    stochastic_backtrack_locally_optimal_structure_rec(i+thickness, j-thickness, rna, structure, energy, actual_node, part_fci);
+    stochastic_backtrack_locally_optimal_structure_rec(i+thickness, j-thickness, rna, structure, partit_fci, actual_node, denomin);
     current_base_pair=get_flat_structure_suffix(current_base_pair);
   } /* end while */  
 }
 
 void stochastic_backtrack_locally_optimal_structure_rec(int x, int y, plain_sequence * rna, char * structure, 
- double * energy, tr_node ** actual_node, TYPE * part_fci){
+ TYPE * partit_fci, tr_node ** actual_node, TYPE * denomin){
+  double e_contribution; /* e_contribution - contribution of rna element (ML etc.) to energy */ 	 
+  // init of all TYPE
   TYPE r;
-  TYPE partition_fci;
-  TYPE e_contribution, local_energy; /* e_contribution - contribution of rna element (ML etc.) to energy */
+  TYPE partition_fci, local_part_weight; // temporary vars to store intermediate computations in
+  TYPE intermediate1, intermediate2, weighted_prob; // intermediates to compute Boltzmann factor of ALL AVAILABLE structures; first two also used later
+  /* intermediate1 and intermediate2 are used multiple times to speed up algorithm. However, every time they are used, they're set
+   * just before (using fcis SET_TYPE_VAL, SET_TYPE_VAL_FROM_DOUBLE or apply_energy_term)
+   */
+  
+  INIT(r);
+  INIT(partition_fci);
+  INIT(local_part_weight);
+  INIT(intermediate1);
+  INIT(intermediate2);
+  INIT(weighted_prob);
+  
+  //initializaton of all other types
   int i, j, i0;
   flat_cell * current_flat_structure;
   int current_base_pair;
   int thickness; 
   int alpha; /*number of helixes in pair*/
   int beta; /*number of unpaired bases*/
-  TYPE intermediate1;
-  TYPE intermediate2;
   
-  intermediate1 = partition_function_table[x][y]/(*part_fci);
-  intermediate2 = total_weight_par(*actual_node)*intermediate1;
-
-  r = random_number(partition_function_table[x][y] - intermediate2);
-  //printf("Upper_lim: %.30f\n", partition_function_table[x][y] - (total_weight_par(*actual_node)*partition_function_table[x][y])/(*part_fci));
-  //printf("random r: %.30f, Partial fci val : %f, Energy ; %f table %f; weight %f \n", r, *part_fci, *energy, partition_function_table[x][y], total_weight_par(*actual_node));
+  SET_TYPE_VAL(intermediate1, partition_function_table[x][y]);
+  DIVIDE(intermediate1, *denomin);
+  total_weight_par(&intermediate2, *actual_node);
+  MULTIPLY(intermediate2, intermediate1);
+  
+  
+  //intermediate1 = partition_function_table[x][y]/(*denomin);
+  //intermediate2 = total_weight_par(*actual_node)*intermediate1;
+  SET_TYPE_VAL(weighted_prob, partition_function_table[x][y]);
+  SUBSTRACT(weighted_prob, intermediate2); 
+  r = RANDOM_NUMBER(weighted_prob);
+  
+  // clear intermediate values which aren't needed anymore
+  CLEAR(weighted_prob);
+  
   if (flat_table[x][y]!=NULL){
   	current_flat_structure=flat_table[x][y];
   	do {
@@ -696,21 +739,42 @@ void stochastic_backtrack_locally_optimal_structure_rec(int x, int y, plain_sequ
   	  j=get_flat_structure_end(current_base_pair); 
       if ((i==x) && (j==y) && !( (i==1) && (j==rna->size) )){
 		  e_contribution = stacking_energy(x-1,y+1);
-          r -= (apply_energy_term(e_contribution, partition_function_table[x+1][y-1])
-           - (partition_function_table[x][y]*tr_node_weight(current_flat_structure->current, *actual_node))/(*part_fci));
-           //printf("substracting %f, total %.30f, r %.30f\n", tr_node_weight(current_flat_structure->current, *actual_node),  partition_fci - (partition_function_table[x][y]*tr_node_weight(current_flat_structure->current, *actual_node))/(*part_fci), r);
-          if (r<0){
+		  /* r = r - (apply_energy_term(e_contribution, partition_function_table[x+1][y-1] - 
+		   *  (tr_node_weight(current_flat_structure->current, *actual_node) * partition_function_table[x][y])/(*denomin))
+		   * <=>
+		   * r = r + (tr_node_weight(current_flat_structure->current, *actual_node) * partition_function_table[x][y])/(*denomin)) - 
+		   * (apply_energy_term(e_contribution, partition_function_table[x+1][y-1]
+		   * 
+		   *  ^ This is interpretation used in following lines
+		   */ 
+		  tr_node_weight(&intermediate1, current_flat_structure->current, *actual_node); // intermediate1 = weigth of forbidden structures on actual node in this context
+		  // intemediate1 gets reused to reduce execution time, ditto to 2
+		  MULTIPLY(intermediate1, partition_function_table[x][y]);
+		  DIVIDE(intermediate1, *denomin);
+		  apply_energy_term(&intermediate2, e_contribution, partition_function_table[x+1][y-1]);
+		  SUBSTRACT(intermediate1, intermediate2);
+		  ADD(r, intermediate1);
+          if (IS_NEGATIVE(r)){
 			add_base_pair(x,y,structure);
 			*actual_node = add_if_nexists(current_flat_structure->current, *actual_node);
-			*energy = apply_energy_term(e_contribution, *energy);
-			*part_fci *= (apply_energy_term(e_contribution, partition_function_table[x+1][y-1])/partition_function_table[x][y]);
-			//printf("Partial fci val : %f, Energy ; %f\n", *part_fci, *energy);
-			stochastic_backtrack_locally_optimal_structure_rec(x+1, y-1, rna, structure, energy, actual_node, part_fci);
+			apply_energy_term(partit_fci, e_contribution, *partit_fci);
+			// reusing intermediate1 and intermediate2 in another context to speed up algorithm
+			SET_TYPE_VAL(intermediate2, partition_function_table[x+1][y-1]);
+			DIVIDE(intermediate2, partition_function_table[x][y]); 
+			apply_energy_term(&intermediate1, e_contribution, intermediate2);
+			MULTIPLY(*denomin, intermediate1);
+			stochastic_backtrack_locally_optimal_structure_rec(x+1, y-1, rna, structure, partit_fci, actual_node, denomin);
+			
+			CLEAR(r);
+			CLEAR(partition_fci);
+			CLEAR(local_part_weight);
+			CLEAR(intermediate1);
+			CLEAR(intermediate2);
 			return ;
           }
   	  }
   	  else{
-		local_energy = 1.;
+		local_part_weight = 1.;
 		partition_fci=1.;
 		alpha = 0;
 		beta = 0;
@@ -737,12 +801,13 @@ void stochastic_backtrack_locally_optimal_structure_rec(int x, int y, plain_sequ
   	      if (thickness>MIN_HELIX_LENGTH) 
   		      thickness=MIN_HELIX_LENGTH;
   		  e_contribution = helix_energy(i,j,thickness);
-  	      partition_fci = product(partition_fci, apply_energy_term(e_contribution, partition_function_table[i+thickness][j-thickness])); /* yann */
-  	      local_energy = apply_energy_term(e_contribution, local_energy);
+  		  apply_energy_term(&intermediate1, e_contribution, partition_function_table[i+thickness][j-thickness]);
+  		  MULTIPLY(partition_fci, intermediate1); /* yann */
+  	      apply_energy_term(&local_part_weight, e_contribution, local_part_weight);
   	      // apply bonuses/penalties for external loop
   	      if(is_entirely_contained(x, y, rna)){
-			partition_fci = apply_energy_term(ext_loop_energy(i, j, rna), partition_fci);
-            local_energy = apply_energy_term(ext_loop_energy(i, j, rna), local_energy);
+			apply_energy_term(&partition_fci, ext_loop_energy(i, j, rna), partition_fci);  
+			apply_energy_term(&local_part_weight, ext_loop_energy(i, j, rna), local_part_weight);
           }
   	      current_base_pair=get_flat_structure_suffix(current_base_pair);
   	    } /* end while */
@@ -752,20 +817,38 @@ void stochastic_backtrack_locally_optimal_structure_rec(int x, int y, plain_sequ
 		  }else{ /*multiloop*/
 			beta += (y - i0);
 			e_contribution =  multiloop_energy(alpha, beta, ptypes, si, sj);
-		  }	
-          partition_fci = apply_energy_term(e_contribution, partition_fci);
-          local_energy = apply_energy_term(e_contribution, local_energy);
+		  }
+		  apply_energy_term(&partition_fci, e_contribution, partition_fci);	
+          apply_energy_term(&local_part_weight, e_contribution, local_part_weight);
 		}
-  	    /* Now we have the overall "weight" of flat structure, should we choose it? */
-  	    r -= (partition_fci - (partition_function_table[x][y]*tr_node_weight(current_flat_structure->current, *actual_node))/(*part_fci));
-  	    //printf("substracting %f, total %.30f, r %.30f\n", tr_node_weight(current_flat_structure->current, *actual_node), partition_fci - (partition_function_table[x][y]*tr_node_weight(current_flat_structure->current, *actual_node))/(*part_fci), r);
-          if (r<0){
-			 *energy = product(local_energy, *energy);
-			 *part_fci *= (partition_fci/partition_function_table[x][y]);
-			 //printf("Partial fci val : %f, Energy ; %f\n", *part_fci, *energy);
+  	    /* Now we have the overall "weight" of flat structure, should we choose it? 
+  	     * r = r - (partition_fci - (tr_node_weight(&intermediate1, current_flat_structure->current, *actual_node) * partition_function_table[x][y]/ *denomin)
+  	     *  <=>
+  	     * r = r + (tr_node_weight(&intermediate1, current_flat_structure->current, *actual_node) * partition_function_table[x][y]/ *denomin - partition_fci)
+  	     * ^ used interpretation
+  	     */
+  	    tr_node_weight(&intermediate1, current_flat_structure->current, *actual_node);
+  	    MULTIPLY(intermediate1, partition_function_table[x][y]);
+		DIVIDE(intermediate1, *denomin);
+		SUBSTRACT(intermediate1, partition_fci);
+		ADD(r, intermediate1);
+  	   
+        if (IS_NEGATIVE(r)){
+			 MULTIPLY(*partit_fci, local_part_weight);
+			 // reusing intermediate1 in different context
+			 SET_TYPE_VAL(intermediate1, partition_fci);
+			 DIVIDE(intermediate1, partition_function_table[x][y]);
+			 MULTIPLY(*denomin, intermediate1);
+			 //*denomin *= (partition_fci/partition_function_table[x][y]);
 			 *actual_node = add_if_nexists(current_flat_structure->current, *actual_node);
-             stochastic_backtrack_flat_structure_rec(current_flat_structure, rna, structure, energy, actual_node, part_fci);
-             /* Warning: Potential memory leak below */
+             stochastic_backtrack_flat_structure_rec(current_flat_structure, rna, structure, partit_fci, actual_node, denomin);
+             
+             CLEAR(r);
+             CLEAR(partition_fci);
+			 CLEAR(local_part_weight);
+			 CLEAR(intermediate1);
+			 CLEAR(intermediate2);
+			 /* Warning: Potential memory leak below */
              return;
           }
           free(ptypes);
@@ -777,7 +860,14 @@ void stochastic_backtrack_locally_optimal_structure_rec(int x, int y, plain_sequ
   }/*endif else */
   else{
 	if((x != 1) || (y != rna->size))
-		*energy = apply_energy_term(hairpin_energy(x-1, y+1, rna), *energy);
+		apply_energy_term(partit_fci, hairpin_energy(x-1, y+1, rna), *partit_fci);
+		
+	CLEAR(r);
+	CLEAR(partition_fci);
+	CLEAR(local_part_weight);
+	CLEAR(intermediate1);
+	CLEAR(intermediate2);
+	CLEAR(subst_contribution);
     return;
   }
 }
@@ -785,14 +875,14 @@ void stochastic_backtrack_locally_optimal_structure_rec(int x, int y, plain_sequ
 /* Uses the stack. No memoization */
 /* This function is not for you, Yann */
 void count_all_locally_optimal_structures2(plain_sequence * rna){
-  TYPE r=1; 
+  long int r=1; 
   init_flat_stack(rna);  
   while (succ_flat_stack(rna->size)==1){
     if ((stack_nb_of_bp*200)>=rna->size*MIN_PERCENT_PAIRING){
       r++ ; 
     }
   }
-  printf("\n(debug): %.3f\n",r); 
+  printf("\n(debug): %ld\n",r); 
   free_flat_table(rna); 
   free_flat_list(); 
 }

@@ -9,7 +9,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "rna.h"
-#include "tree.h"
 #include "flat_structures.h"
 #include "sort.h"
 
@@ -22,7 +21,7 @@ linktab * start_linktab(){
 }
 
 // adds one element to linktab
-void add_link_element(linktab * linktable, TYPE Boltz_partition, flat_cell * fcell){
+void add_link_element(linktab * linktable, double Boltz_partition, flat_cell * fcell){
 	flat_sort new_sort;
 	new_sort.Boltz_partition = Boltz_partition;
 	new_sort.fcell = fcell;

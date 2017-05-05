@@ -1,7 +1,7 @@
 #ifndef TREE_H_
 #define TREE_H_
 
-#define TYPE double
+
 
 /* explanation: each node (tr_node) holds a pointer to a start of a linked
  * list to the next node, link to previous node, Boltzmann's factor
