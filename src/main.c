@@ -8,12 +8,15 @@
 #include <string.h>
 #include <unistd.h>
 #include <getopt.h>
+#include <mpfr.h>
 #include "rna.h"
 #include "output_file.h"
 #include "base_pairs.h"
 #include "flat_structures.h"
 #include "locally_optimal_structures.h"
+#include "energies.h"
 #include "counting_double.h"
+#include "counting_mpfr.h"
 
 int FILEBP; 
 int FILEOUT;
@@ -25,6 +28,7 @@ int SAMPLING;
 int NONREDUN;
 int GRAMMAR;
 int TIMEINFO;
+int USEMPFR;
 float ZSAMPLING; 
 char * nameFileOut; 
 char * nameFileInFasta;
@@ -38,7 +42,8 @@ void usage(){
   printf("        minimum helix length. Default is 3.\n"); 
   printf("   -c count\n"); 
   printf("   -u calculates the number of flat structures;\n");
-  printf("   -f calculates Boltzmann's partition function.\n");  
+  printf("   -f calculates Boltzmann's partition function.\n");
+  printf("   -w uses MPFR to augment precision of compututation, allowing deeper samplig (slower)."); 
   printf("   -g outputfile \n");
   printf("       prints all flat structures in adapted grammar.\n");
   printf("   -s <int> \n"); 
@@ -86,7 +91,7 @@ void parse_params(int argc, char **argv){
   
   char char_read;
   
-  while((char_read = getopt(argc, argv, "a:b:cufd:g:e:i:k:l:m:n:b:vo:p:q:s:t:z:xr")) != EOF){
+  while((char_read = getopt(argc, argv, "a:b:cufwd:g:e:i:k:l:m:n:b:vo:p:q:s:t:z:xr")) != EOF){
     switch(char_read){ 
     case 'm' : /* bulge length */
       MAX_BULGE_SIZE= atoi(optarg);
@@ -113,6 +118,9 @@ void parse_params(int argc, char **argv){
     case 'f' : /* calculating Boltzmann's partition function */
       PARTITION=1;
       break;
+    case 'w' : /* uses MPFR instead of standard doubles */
+	  USEMPFR=1;
+	  break;
     case 'g' : /* printing in adapted grammar */
       nameFileGrammar = (char*) malloc (strlen(optarg)+1 * sizeof(char));
       strcpy (nameFileGrammar, optarg);
@@ -287,7 +295,7 @@ int main(int argc, char **argv){
    
   plain_sequence  * rna_seq;
   
-  srand(time(NULL));
+  //srand(time(NULL)); // moved to counting_double.c since that is only one using this kind of generator
   
   opterr = 0;
   MIN_LOOP_SIZE=3; 
@@ -303,6 +311,7 @@ int main(int argc, char **argv){
   FLATS=0; 
   SAMPLING=0;
   GRAMMAR=0;
+  USEMPFR=0;
   TEMP=37.;
   TEMPSCALE=1.; 
   nameFileOut=""; 
@@ -325,119 +334,236 @@ int main(int argc, char **argv){
   RT = TEMPSCALE*0.0019872370936902486 * (273.15 + TEMP) * 100;
   rna_seq= (plain_sequence *) get_plain_sequence(nameFileInFasta, RNAname);	 
   check_and_update_params(rna_seq->size);
-  if(NONREDUN && ZSAMPLING){
-	printf("Warning : Non-redundancy option '-r' cannot be used with an option '-z' : '-r' ignored.\n");
-	NONREDUN = 0;  
-  }
-  
-  /* generate all base pairs */
-  if (TIMEINFO) clock_gettime(CLOCK_MONOTONIC, &start_time);
-  compute_all_base_pairs(rna_seq, FILEBP, nameFileBasePair);
-  if (TIMEINFO){
-    clock_gettime(CLOCK_MONOTONIC, &end_time);
-    BP_t = (double)(end_time.tv_sec - start_time.tv_sec) + (double)(end_time.tv_nsec - start_time.tv_nsec)/1.0e9 ; 
-  }
-  if (VERBOSE) 
-    display_base_pairs(rna_seq);
-  
-  /* generate all flat structures */
-  if (TIMEINFO) clock_gettime(CLOCK_MONOTONIC, &start_time);
-  build_all_flat_structures(rna_seq); 
-  if (TIMEINFO){
-    clock_gettime(CLOCK_MONOTONIC, &end_time);
-    flat_t = (double)(end_time.tv_sec - start_time.tv_sec) + (double)(end_time.tv_nsec - start_time.tv_nsec)/1.0e9 ;
-  }
-  if (VERBOSE)
-    display_all_flat_structures(rna_seq); 
-  
-  if (COUNTING){
-    /* count all loc opt structures */ 
-    if (TIMEINFO) clock_gettime(CLOCK_MONOTONIC, &start_time);  
-    count_all_locally_optimal_structures(rna_seq);
-    if(TIMEINFO){
-	  clock_gettime(CLOCK_MONOTONIC, &end_time);
-      DP_t = (double)(end_time.tv_sec - start_time.tv_sec) + (double)(end_time.tv_nsec - start_time.tv_nsec)/1.0e9 ;
-      print_time_general(rna_seq, BP_t, flat_t);
-      printf(" - dynamic programming - counting: %f \n", DP_t);
-    } 
-  }
-  else if(PARTITION){
-	if (TIMEINFO) clock_gettime(CLOCK_MONOTONIC, &start_time);
-	double partition_fun;
-	get_partition_function_double(&partition_fun, rna_seq);
-	printf("Boltzmann's partition function: %.9f \n", partition_fun);
-	if(TIMEINFO){
-	  clock_gettime(CLOCK_MONOTONIC, &end_time);
-      DP_t = (double)(end_time.tv_sec - start_time.tv_sec) + (double)(end_time.tv_nsec - start_time.tv_nsec)/1.0e9 ;
-      print_time_general(rna_seq, BP_t, flat_t);
-      printf(" - dynamic programming matrix calculation: %f \n", DP_t);
-    } 
-  }
-  else if(FLATS){
-	printf("Total number of non-empty flat structures: %ld \n", count_all_flat_structures(rna_seq));  
-  }
-  else if(GRAMMAR){
-	printf("All flat structures are exported to file in adapted grammar. Terminal output also available below: \n\n");
-	print_all_flat_structures_pile_double(rna_seq, nameFileGrammar); 
+  if(!USEMPFR){
+	  if(NONREDUN && ZSAMPLING){
+		printf("Warning : Non-redundancy option '-r' cannot be used with an option '-z' : '-r' ignored.\n");
+		NONREDUN = 0;  
+	  }
+	  
+	  /* generate all base pairs */
+	  if (TIMEINFO) clock_gettime(CLOCK_MONOTONIC, &start_time);
+	  compute_all_base_pairs(rna_seq, FILEBP, nameFileBasePair);
+	  if (TIMEINFO){
+		clock_gettime(CLOCK_MONOTONIC, &end_time);
+		BP_t = (double)(end_time.tv_sec - start_time.tv_sec) + (double)(end_time.tv_nsec - start_time.tv_nsec)/1.0e9 ; 
+	  }
+	  if (VERBOSE) 
+		display_base_pairs(rna_seq);
+	  
+	  /* generate all flat structures */
+	  if (TIMEINFO) clock_gettime(CLOCK_MONOTONIC, &start_time);
+	  build_all_flat_structures(rna_seq); 
+	  if (TIMEINFO){
+		clock_gettime(CLOCK_MONOTONIC, &end_time);
+		flat_t = (double)(end_time.tv_sec - start_time.tv_sec) + (double)(end_time.tv_nsec - start_time.tv_nsec)/1.0e9 ;
+	  }
+	  if (VERBOSE)
+		display_all_flat_structures(rna_seq); 
+	  
+	  if (COUNTING){
+		/* count all loc opt structures */ 
+		if (TIMEINFO) clock_gettime(CLOCK_MONOTONIC, &start_time);  
+		count_all_locally_optimal_structures(rna_seq);
+		if(TIMEINFO){
+		  clock_gettime(CLOCK_MONOTONIC, &end_time);
+		  DP_t = (double)(end_time.tv_sec - start_time.tv_sec) + (double)(end_time.tv_nsec - start_time.tv_nsec)/1.0e9 ;
+		  print_time_general(rna_seq, BP_t, flat_t);
+		  printf(" - dynamic programming - counting: %f \n", DP_t);
+		} 
+	  }
+	  else if(PARTITION){
+		if (TIMEINFO) clock_gettime(CLOCK_MONOTONIC, &start_time);
+		double partition_fun;
+		get_partition_function_double(&partition_fun, rna_seq);
+		printf("Boltzmann's partition function: %.9f \n", partition_fun);
+		if(TIMEINFO){
+		  clock_gettime(CLOCK_MONOTONIC, &end_time);
+		  DP_t = (double)(end_time.tv_sec - start_time.tv_sec) + (double)(end_time.tv_nsec - start_time.tv_nsec)/1.0e9 ;
+		  print_time_general(rna_seq, BP_t, flat_t);
+		  printf(" - dynamic programming matrix calculation: %f \n", DP_t);
+		} 
+	  }
+	  else if(FLATS){
+		printf("Total number of non-empty flat structures: %ld \n", count_all_flat_structures(rna_seq));  
+	  }
+	  else if(GRAMMAR){
+		printf("All flat structures are exported to file in adapted grammar. Terminal output also available below: \n\n");
+		print_all_flat_structures_pile(rna_seq, nameFileGrammar); 
+	  }	  
+	  else{ 
+		if (SAMPLING>0){
+		  /* stochastic backtrack*/ 
+		  int i;
+		  folding* folded_rna;
+		  int struc_count = 0;
+		  if (TIMEINFO) clock_gettime(CLOCK_MONOTONIC, &start_time);  
+		  folded_rna = stochastic_backtrack_locally_optimal_structures_double(SAMPLING, rna_seq, NONREDUN, TIMEINFO, 0, &struc_count, &DP_t);
+		  if (TIMEINFO) clock_gettime(CLOCK_MONOTONIC, &end_time);
+		  display_plain_sequence(rna_seq); 
+		  for (i=1;i<=SAMPLING;i++){
+			print_structure(folded_rna->structures[i], folded_rna->part_fcis[i], folded_rna->energy_ref[i], rna_seq);
+		  }
+		  if(TIMEINFO){
+			print_time_general(rna_seq, BP_t, flat_t);
+			printf(" - sampling time (%d samples): %f \n", SAMPLING, DP_t);
+		  } 
+		}
+		else if(ZSAMPLING>0){
+		  /* stochastic backtrack*/ 
+		  int i;
+		  folding* folded_rna;
+		  int struc_count = 0;
+		  if (TIMEINFO) clock_gettime(CLOCK_MONOTONIC, &start_time);  
+		  folded_rna = stochastic_backtrack_locally_optimal_structures_double(SAMPLING, rna_seq, NONREDUN, TIMEINFO, ZSAMPLING, &struc_count, &DP_t);
+		  if (TIMEINFO) clock_gettime(CLOCK_MONOTONIC, &end_time);
+		  display_plain_sequence(rna_seq);
+		  for (i=1;i<=struc_count;i++){
+			print_structure(folded_rna->structures[i], folded_rna->part_fcis[i], folded_rna->energy_ref[i], rna_seq);
+		  }
+		  if(TIMEINFO){
+			print_time_general(rna_seq, BP_t, flat_t);
+			printf(" - sampling time (%d samples): %f \n", SAMPLING, DP_t);
+		  } 
+		}
+		else
+		{
+		  /* print all loc opt structures */
+		  printf("-- Locally optimal secondary structures\n\n"); 
+		  if (!FILEOUT) 
+			display_plain_sequence(rna_seq);
+		  outfile=open_outputfile(FILEOUT, nameFileOut); 
+		  if (TIMEINFO) clock_gettime(CLOCK_MONOTONIC, &start_time);  
+		  generate_all_locally_optimal_structures(rna_seq,outfile);
+		  if(TIMEINFO){
+			clock_gettime(CLOCK_MONOTONIC, &end_time);
+			print_time_general(rna_seq, BP_t, flat_t);
+			printf(" - determining of structures: %f \n", DP_t);
+		  } 
+		  close_outputfile(FILEOUT, outfile); 
+		  if (FILEOUT) 
+			printf("See %s", nameFileOut); 
+		}
+	  }
+	  
+	  free_base_pairs(rna_seq); 
+	  free_plain_sequence(rna_seq);
+	  printf("\nBye bye\n");
+  }else{
+	  if(NONREDUN && ZSAMPLING){
+		printf("Warning : Non-redundancy option '-r' cannot be used with an option '-z' : '-r' ignored.\n");
+		NONREDUN = 0;  
+	  }
+	  
+	  /* generate all base pairs */
+	  if (TIMEINFO) clock_gettime(CLOCK_MONOTONIC, &start_time);
+	  compute_all_base_pairs(rna_seq, FILEBP, nameFileBasePair);
+	  if (TIMEINFO){
+		clock_gettime(CLOCK_MONOTONIC, &end_time);
+		BP_t = (double)(end_time.tv_sec - start_time.tv_sec) + (double)(end_time.tv_nsec - start_time.tv_nsec)/1.0e9 ; 
+	  }
+	  if (VERBOSE) 
+		display_base_pairs(rna_seq);
+	  
+	  /* generate all flat structures */
+	  if (TIMEINFO) clock_gettime(CLOCK_MONOTONIC, &start_time);
+	  build_all_flat_structures(rna_seq); 
+	  if (TIMEINFO){
+		clock_gettime(CLOCK_MONOTONIC, &end_time);
+		flat_t = (double)(end_time.tv_sec - start_time.tv_sec) + (double)(end_time.tv_nsec - start_time.tv_nsec)/1.0e9 ;
+	  }
+	  if (VERBOSE)
+		display_all_flat_structures(rna_seq); 
+	  
+	  if (COUNTING){
+		/* count all loc opt structures */ 
+		if (TIMEINFO) clock_gettime(CLOCK_MONOTONIC, &start_time);  
+		count_all_locally_optimal_structures(rna_seq);
+		if(TIMEINFO){
+		  clock_gettime(CLOCK_MONOTONIC, &end_time);
+		  DP_t = (double)(end_time.tv_sec - start_time.tv_sec) + (double)(end_time.tv_nsec - start_time.tv_nsec)/1.0e9 ;
+		  print_time_general(rna_seq, BP_t, flat_t);
+		  printf(" - dynamic programming - counting: %f \n", DP_t);
+		} 
+	  }
+	  else if(PARTITION){
+		if (TIMEINFO) clock_gettime(CLOCK_MONOTONIC, &start_time);
+		mpfr_t partition_fun;
+		mpfr_init2(partition_fun, 100);
+		get_partition_function_mpfr(&partition_fun, rna_seq);
+		printf("Boltzmann's partition function: %.9f \n", mpfr_get_d(partition_fun, MPFR_RNDN));
+		if(TIMEINFO){
+		  clock_gettime(CLOCK_MONOTONIC, &end_time);
+		  DP_t = (double)(end_time.tv_sec - start_time.tv_sec) + (double)(end_time.tv_nsec - start_time.tv_nsec)/1.0e9 ;
+		  print_time_general(rna_seq, BP_t, flat_t);
+		  printf(" - dynamic programming matrix calculation: %f \n", DP_t);
+		} 
+	  }
+	  else if(FLATS){
+		printf("Total number of non-empty flat structures: %ld \n", count_all_flat_structures(rna_seq));  
+	  }
+	  else if(GRAMMAR){
+		printf("All flat structures are exported to file in adapted grammar. Terminal output also available below: \n\n");
+		print_all_flat_structures_pile(rna_seq, nameFileGrammar); 
+	  }	  
+	  else{ 
+		if (SAMPLING>0){
+		  /* stochastic backtrack*/ 
+		  int i;
+		  folding* folded_rna;
+		  int struc_count = 0;
+		  if (TIMEINFO) clock_gettime(CLOCK_MONOTONIC, &start_time);  
+		  folded_rna = stochastic_backtrack_locally_optimal_structures_mpfr(SAMPLING, rna_seq, NONREDUN, TIMEINFO, 0, &struc_count, &DP_t);
+		  if (TIMEINFO) clock_gettime(CLOCK_MONOTONIC, &end_time);
+		  display_plain_sequence(rna_seq); 
+		  for (i=1;i<=SAMPLING;i++){
+			print_structure(folded_rna->structures[i], folded_rna->part_fcis[i], folded_rna->energy_ref[i], rna_seq);
+		  }
+		  if(TIMEINFO){
+			print_time_general(rna_seq, BP_t, flat_t);
+			printf(" - sampling time (%d samples): %f \n", SAMPLING, DP_t);
+		  } 
+		}
+		else if(ZSAMPLING>0){
+		  /* stochastic backtrack*/ 
+		  int i;
+		  folding* folded_rna;
+		  int struc_count = 0;
+		  if (TIMEINFO) clock_gettime(CLOCK_MONOTONIC, &start_time);  
+		  folded_rna = stochastic_backtrack_locally_optimal_structures_mpfr(SAMPLING, rna_seq, NONREDUN, TIMEINFO, ZSAMPLING, &struc_count, &DP_t);
+		  if (TIMEINFO) clock_gettime(CLOCK_MONOTONIC, &end_time);
+		  display_plain_sequence(rna_seq);
+		  for (i=1;i<=struc_count;i++){
+			print_structure(folded_rna->structures[i], folded_rna->part_fcis[i], folded_rna->energy_ref[i], rna_seq);
+		  }
+		  if(TIMEINFO){
+			print_time_general(rna_seq, BP_t, flat_t);
+			printf(" - sampling time (%d samples): %f \n", SAMPLING, DP_t);
+		  } 
+		}
+		else
+		{
+		  /* print all loc opt structures */
+		  printf("-- Locally optimal secondary structures\n\n"); 
+		  if (!FILEOUT) 
+			display_plain_sequence(rna_seq);
+		  outfile=open_outputfile(FILEOUT, nameFileOut); 
+		  if (TIMEINFO) clock_gettime(CLOCK_MONOTONIC, &start_time);  
+		  generate_all_locally_optimal_structures(rna_seq,outfile);
+		  if(TIMEINFO){
+			clock_gettime(CLOCK_MONOTONIC, &end_time);
+			print_time_general(rna_seq, BP_t, flat_t);
+			printf(" - determining of structures: %f \n", DP_t);
+		  } 
+		  close_outputfile(FILEOUT, outfile); 
+		  if (FILEOUT) 
+			printf("See %s", nameFileOut); 
+		}
+	  }
+	  
+	  free_base_pairs(rna_seq); 
+	  free_plain_sequence(rna_seq);
+	  printf("\nBye bye\n");		
   }	  
-  else{ 
-    if (SAMPLING>0){
-      /* stochastic backtrack*/ 
-      int i;
-      folding_d* folded_rna;
-      int struc_count = 0;
-      if (TIMEINFO) clock_gettime(CLOCK_MONOTONIC, &start_time);  
-      folded_rna = stochastic_backtrack_locally_optimal_structures_double(SAMPLING, rna_seq, NONREDUN, TIMEINFO, 0, &struc_count, &DP_t);
-      if (TIMEINFO) clock_gettime(CLOCK_MONOTONIC, &end_time);
-      display_plain_sequence(rna_seq); 
-      for (i=1;i<=SAMPLING;i++){
-        print_structure_double(folded_rna->structures[i], folded_rna->part_fcis[i], folded_rna->energy_ref[i], rna_seq);
-      }
-      if(TIMEINFO){
-        print_time_general(rna_seq, BP_t, flat_t);
-        printf(" - sampling time (%d samples): %f \n", SAMPLING, DP_t);
-      } 
-    }
-    else if(ZSAMPLING>0){
-      /* stochastic backtrack*/ 
-      int i;
-      folding_d* folded_rna;
-      int struc_count = 0;
-      if (TIMEINFO) clock_gettime(CLOCK_MONOTONIC, &start_time);  
-      folded_rna = stochastic_backtrack_locally_optimal_structures_double(SAMPLING, rna_seq, NONREDUN, TIMEINFO, ZSAMPLING, &struc_count, &DP_t);
-      if (TIMEINFO) clock_gettime(CLOCK_MONOTONIC, &end_time);
-      display_plain_sequence(rna_seq);
-      for (i=1;i<=struc_count;i++){
-        print_structure_double(folded_rna->structures[i], folded_rna->part_fcis[i], folded_rna->energy_ref[i], rna_seq);
-      }
-      if(TIMEINFO){
-        print_time_general(rna_seq, BP_t, flat_t);
-        printf(" - sampling time (%d samples): %f \n", SAMPLING, DP_t);
-      } 
-    }
-    else
-    {
-      /* print all loc opt structures */
-      printf("-- Locally optimal secondary structures\n\n"); 
-      if (!FILEOUT) 
-        display_plain_sequence(rna_seq);
-      outfile=open_outputfile(FILEOUT, nameFileOut); 
-      if (TIMEINFO) clock_gettime(CLOCK_MONOTONIC, &start_time);  
-      generate_all_locally_optimal_structures(rna_seq,outfile);
-      if(TIMEINFO){
-	    clock_gettime(CLOCK_MONOTONIC, &end_time);
-        print_time_general(rna_seq, BP_t, flat_t);
-        printf(" - determining of structures: %f \n", DP_t);
-      } 
-      close_outputfile(FILEOUT, outfile); 
-      if (FILEOUT) 
-        printf("See %s", nameFileOut); 
-    }
-  }
-  
-  free_base_pairs(rna_seq); 
-  free_plain_sequence(rna_seq);
-  printf("\nBye bye\n");
   return 0;
 }
 

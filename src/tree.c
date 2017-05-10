@@ -18,6 +18,7 @@ tr_node * create_tr_node(int id, tr_node * parent){
   new_tr_node->id = id;
   new_tr_node->parent = parent;
   new_tr_node->ll_start = NULL;
+  INIT(new_tr_node->weight);
   SET_TYPE_VAL_FROM_DOUBLE(new_tr_node->weight, 0.);
   return new_tr_node;
 }

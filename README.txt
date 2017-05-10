@@ -2,7 +2,7 @@
  /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/
 
             RNANR - RNA Non-Redundant - program to compute 
-          and sample non-redundantly RNA socondary structures
+          and sample non-redundantly RNA secondary structures
         
 
            __  __  __  __  __  __  __  __  __  __  __  __  __  
@@ -43,9 +43,13 @@ PERFORM SAMPLING?"
 |_|
 | \EQUIREMENTS:
 ---------------
-Before any installation of program is made, make sure you have ViennaRNA
-installed on your computer. The version tested is 2.2.8., however the
-lastest version should be compatible too. 
+Before any installation of program is made, make sure you have:
+
+- ViennaRNA. The version tested is 2.2.8., however the latest version 
+should be compatible too.
+
+- MPFR and GMP by extension (required by MPFR). The version tested is 
+3.1.5.
 
 |
 |NSTALLATION:
@@ -185,6 +189,18 @@ contain as many lines as necessary.
      complement to A-U, C-G and G-U base pairs present in the RNA
      sequence.
 
+ _
+| |
+|_|PTIONAL PARAMETERS - PRECISION
+---------------------------------
+
+The program offers two precision versions, the standard double and 100 
+bit precision using MPFR. The default version used is standard.
+
+- w : Toggles on MPFR precision. This allows deeper sampling. The 
+      computation becomes considerably slower, so for samples of smaller
+      sequences and smaller sample sizes in general this option is not
+      recommended.
 
  _
 | |
@@ -230,8 +246,9 @@ the structures of entered sequence:
 
 |/
 |\NOWN BUGS : The sampling starts to send invalid samples once their 
-------------- Boltzmann probability starts getting low. This is caused
-              by numerical imprecision. Fix is on their way.
+------------- Boltzmann probability starts getting low. This manifests 
+              as program returning empty and half-empty structures. 
+              To prevent this use '-w' option. 
 
  _
 |_|
@@ -239,8 +256,16 @@ the structures of entered sequence:
 ----------  Juraj Michalik (juraj.michalik@inria.fr)
             Yann Ponty (yann.ponty@lix.polytechnique.fr)
 
-Please send comments and bug reports to the address above.
-		  
+Please send comments and bug reports to one of the addresses above.
+
+           _  
+|         |
+|_IBRARY  |_REDITS: 
+-------------------
+            
+ViennaRNA - https://www.tbi.univie.ac.at/RNA/
+MPFR - http://www.mpfr.org/          
+
   __  __  __  __  __  __  __  __  __  __  __  __  __  __  __  __  __  __   
  /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/
 
