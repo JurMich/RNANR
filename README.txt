@@ -46,14 +46,27 @@ PERFORM SAMPLING?"
 Before any installation of program is made, make sure you have:
 
 - ViennaRNA. The version tested is 2.2.8., however the latest version 
-should be compatible too.
+  should be compatible too.
 
-- MPFR and GMP by extension (required by MPFR). The version tested is 
-3.1.5.
+- Optional: MPFR and GMP by extension (required by MPFR). The version 
+  tested is 3.1.5. If you don't have or don't wan't to install it you 
+  install the version of program without MPFR (see below).
 
 |
 |NSTALLATION:
 ------------- 
+
+The program offers two versions to install:
+
+- the default version includes possibility to raise computation precision.
+  To install this version, just go to 'RNANR/src' of your downloaded 
+  directory and type 'make'.
+  
+- you can also install the version not needing MPFR (obligatory for those
+  not having it installed). Go to 'RNANR/src' of your downloaded directory
+  and type 'make CFLAGS="-DIGNOREMPFR"'.This will install version without
+  MPFR dependancy. Option '-w' isn't available in this version.
+   
 
 Go to the "src" directory, and type 'make'. This will create an executable
 file "locopt".
@@ -195,12 +208,13 @@ contain as many lines as necessary.
 ---------------------------------
 
 The program offers two precision versions, the standard double and 100 
-bit precision using MPFR. The default version used is standard.
+bit precision using MPFR. The default version used is standard. 
 
 - w : Toggles on MPFR precision. This allows deeper sampling. The 
       computation becomes considerably slower, so for samples of smaller
       sequences and smaller sample sizes in general this option is not
-      recommended.
+      recommended. Unavailable if the second version of program was 
+      installed.
 
  _
 | |
