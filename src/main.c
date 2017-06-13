@@ -55,7 +55,7 @@ void usage(){
   printf("   -u calculates the number of flat structures;\n");
   printf("   -f calculates Boltzmann's partition function.\n");
 #ifndef IGNOREMPFR //do not inglude MPFR during compilation 
-  printf("   -w uses MPFR to augment precision of compututation, allowing deeper samplig (slower)."); 
+  printf("   -w uses MPFR to augment precision of compututation, allowing deeper sampling (slower)."); 
 #endif
   printf("   -g outputfile \n");
   printf("       prints all flat structures in adapted grammar.\n");

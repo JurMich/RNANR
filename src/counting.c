@@ -186,7 +186,7 @@ folding* stochastic_backtrack_locally_optimal_structures(int number_of_structure
   long int max_struct;
   TYPE total_Boltzmann;
   TYPE cumulative_parf;
-  TYPE coverage; // % of Boltzmann factor that is covere by currently returned solution
+  TYPE coverage; // % of Boltzmann factor that is covered by currently returned solution
   TYPE* denomin  = (TYPE*) malloc (sizeof(TYPE));  // denominator used to ponderate the weight of forbidden structures
   INIT(total_Boltzmann);
   INIT(cumulative_parf);

@@ -29,7 +29,7 @@ vrna_fold_compound_t *E_fold_cp;
 gmp_randstate_t rng_state; //RNG
 
 int precision(){ // returns precision
-		return 100;
+		return 200;
 }
 
 
