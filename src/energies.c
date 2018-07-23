@@ -47,11 +47,13 @@
 /********************************************/
 /*       structure and misc. utilities     */
 /******************************************/
-void print_structure(char * structure, double part_fci, float energy_ref, plain_sequence * rna){
+void print_structure(char * structure, double part_fci, float energy_ref, plain_sequence * rna, FILE * outfile){
   int i;
+  if(!outfile)
+	outfile = stdout;
   for (i=1; i<=rna->size; i++)
-    printf("%c", structure[i]);
-  printf(" - Free Energy : %.3f \n", (-RT*log(part_fci))/100);
+    fprintf(outfile, "%c", structure[i]);
+  fprintf(outfile, " - Free Energy : %.3f \n", (-RT*log(part_fci))/100);
 }
 
 void add_base_pair(int i, int j, char * structure){

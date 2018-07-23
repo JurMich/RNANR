@@ -113,15 +113,15 @@ void init_useful_flat_structures(plain_sequence * rna){
   }
 
   /* step 1: flat structures that are covered by a helix  */
-  for (x=1; x<=rna->size-MIN_HELIX_LENGTH; x++)
+  for (x=1; x<=MAXI(1,rna->size-MIN_HELIX_LENGTH); x++)
     for (y=x+MIN_HELIX_LENGTH; y<=rna->size; y++)
       if (get_BP(x,y)>=MIN_HELIX_LENGTH){
-	for (k=y-MIN_HELIX_LENGTH - MAX_BULGE_SIZE; k<=y-MIN_HELIX_LENGTH; k++)
+	for (k=MAXI(1,y-MIN_HELIX_LENGTH - MAX_BULGE_SIZE); k<=MAXI(1,y-MIN_HELIX_LENGTH); k++)
 	  if ((k>0) && (k<=rna->size)) /* a verifier */
 	    Useful_flat_structures[x+MIN_HELIX_LENGTH][k]=2;
       }
   
-  for (k=rna->size - MAX_BULGE_SIZE; k<=rna->size ; k++)
+  for (k=MAXI(1,rna->size - MAX_BULGE_SIZE); k<=rna->size ; k++)
     Useful_flat_structures[1][k]=2;
   
   /* step 2 : all suffixes */
@@ -225,7 +225,7 @@ void display_all_flat_structures_range(plain_sequence * rna){
   int x,y; 
 
   printf("-- Set of all possibles maximal flat structures\n\n");
- for (x=1; x<=rna->size-2*MIN_HELIX_LENGTH-MIN_LOOP_SIZE+1; x++)
+ for (x=1; x<=MAXI(1,rna->size-2*MIN_HELIX_LENGTH-MIN_LOOP_SIZE+1); x++)
     for (y=x+2*MIN_HELIX_LENGTH+MIN_LOOP_SIZE-1; y<=rna->size; y++)
       display_flat_range(x,y);
 }
@@ -457,7 +457,7 @@ void build_all_flat_structures( plain_sequence * rna){
   init_flat_table(rna);
   init_useful_flat_structures(rna); 
   
-  for (x=rna->size-MIN_HELIX_LENGTH+1; x>0; x--){ 
+  for (x=MAXI(1,rna->size-MIN_HELIX_LENGTH+1); x>0; x--){ 
     for (p=x+MIN_LOOP_SIZE; p<=rna->size; p++){
       /* helix internal extension */
       if ((get_BP(x,p)<MIN_HELIX_LENGTH) && (get_BP(x,p)>0) && is_useful(x,p,1)){

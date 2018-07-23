@@ -7,12 +7,12 @@
 
            __  __  __  __  __  __  __  __  __  __  __  __  __  
           /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/
-             ______    __    _    ____    __    _   ______
-            |  __  \  |  \  | |  / __ \  |  \  | | |  __  \
-            | |__| |  |   \ | | / |__| \ |   \ | | | |__| |
-            |  _   /  | |\ \| | |  __  | | |\ \| | |  _   /
-            | | \  \  | | \   | | |  | | | | \   | | | \  \
-            |_|  \__\ |_|  \__| |_|  |_| |_|  \__| |_|  \__\
+             ______    _    __    ____    __    _    ______
+            |  __  \  | |  /  |  / __ \  |  \  | |  /  __  |
+            | |__| |  | | /   | / |__| \ |   \ | |  | |__| |
+            |  _   /  | |/ /| | |  __  | | |\ \| |  \   _  |
+            | | \  \  |   / | | | |  | | | | \   |  /  / | |
+            |_|  \__\ |__/  |_| |_|  |_| |_|  \__| /__/  |_|
            __  __  __  __  __  __  __  __  __  __  __  __  __  
           /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/
 	  
@@ -256,6 +256,21 @@ the structures of entered sequence:
       structures and exits.
       
 - u : Computes the number of all flat structures and exits. 
+
+
+ _
+|_)
+|_)UG FIXES
+-----------
+
+V1.01:
+	- Added detection whether the ViennaRNA package is installed
+	- Fixed issue with -o option not working for sampling
+	- Added multiline fasta compability
+	- Resolved issues with newline symbol not being correctly recognized
+	  when appearing within the sequence
+	- Resolved segmentation fault when sequence without header is entered
+	- And most importantly, made ASCII art mirrorized! :-)
 
 
 |/

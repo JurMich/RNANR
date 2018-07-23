@@ -32,7 +32,7 @@ typedef struct {int flat_start; int flat_end;} flat_pair;
 typedef struct folding {char** structures; double* part_fcis; float* energy_ref;} folding; 
 
 // utility functions
-void print_structure(char * structure, double part_fci, float energy_ref, plain_sequence * rna);
+void print_structure(char * structure, double part_fci, float energy_ref, plain_sequence * rna, FILE * outfile);
 void add_base_pair(int i, int j, char * structure);
 void add_helix(int i, int j, int thickness, char * structure);
 int base2int(char base);

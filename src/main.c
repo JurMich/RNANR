@@ -60,25 +60,25 @@ char * nameFileBasePair;
 /* Print usage */
 void usage(){
 #ifndef IGNOREMPFR //do not inglude MPFR during compilation	
-  printf("\nRNANR -i sequence.fa [-o outputfile] [-a int] [-c] [-u] [-f] [-g outputfile] [-d file.bra] [-e file.bra] [-k int] [-l int] [-m int] [-n int] [-p int]  [-q int] [-t int] [-x] [-h] [-v]\n\n");
+  printf("\nRNANR -i sequence.fa [-o outputfile] [-a int] [-c] [-u] [-f] [-g outputfile] [-d file.bra] [-e file.bra] [-k int] [-l int] [-m int] [-n int] [-p int]  [-q int] [-s int] [-r] [-t int] [-z float] [-t int] [-x] [-h] [-v]\n\n");
 #else
-  printf("\nRNANR -i sequence.fa [-o outputfile] [-a int] [-c] [-u] [-f] [-w] [-g outputfile] [-d file.bra] [-e file.bra] [-k int] [-l int] [-m int] [-n int] [-p int]  [-q int] [-t int] [-x] [-h] [-v]\n\n");
+  printf("\nRNANR -i sequence.fa [-o outputfile] [-a int] [-c] [-u] [-f] [-w] [-g outputfile] [-d file.bra] [-e file.bra] [-k int] [-l int] [-m int] [-n int] [-p int]  [-q int] [-s int] [-r] [-t int] [-z float] [-x] [-h] [-v]\n\n");
 #endif
   printf("   -a <int> \n"); 
   printf("        minimum helix length. Default is 3.\n"); 
   printf("   -c count\n"); 
   printf("   -u calculates the number of flat structures;\n");
   printf("   -f calculates Boltzmann's partition function.\n");
-#ifndef IGNOREMPFR //do not inglude MPFR during compilation 
+#ifndef IGNOREMPFR //do not include MPFR during compilation 
   printf("   -w uses MPFR to augment precision of compututation, allowing deeper sampling (slower)."); 
 #endif
   printf("   -g outputfile \n");
   printf("       prints all flat structures in adapted grammar.\n");
   printf("   -s <int> \n"); 
   printf("       non-redundant stochastic backtrack, giving entered number of sampled structures.\n");
-  printf("   -z <int> \n"); 
+  printf("   -z <float> \n"); 
   printf("       non-redundant stochastic backtrack, giving a number of structures that constitute entered percentage of Boltzmann's partition function.\n");
-  printf("   -r available only with option, enables redundancy for stochastic backtrack. Does not work for -z, as to prevent possible very long execution times\n"); 
+  printf("   -r available only with option -s, enables redundancy for stochastic backtrack. Does not work for -z, as to prevent possible very long execution times\n"); 
   printf("   -d file.bra\n");
   printf("       set of base pairs that will be used for the foldings.\n");
   printf("   -e file.bra\n");
@@ -275,7 +275,9 @@ void parse_params(int argc, char **argv){
 
 }
 
-void check_and_update_params(int length){  
+void check_and_update_params(plain_sequence * rna){  
+  
+  int length = rna->size; 
  
   if (MAX_HELIX_SCOPE==0)
     MAX_HELIX_SCOPE=length; 
@@ -291,7 +293,14 @@ void check_and_update_params(int length){
   printf("Maximum degree od a multiloop (-q): %d\n", MAX_DEGREE); 
 
   if (MAX_HELIX_SCOPE < MIN_LOOP_SIZE + 2*MIN_HELIX_LENGTH){
-    printf("\n! ! Bad parameter value (-n): This value is too small.\n\n"); 
+    if((rna->label = "") || (rna->label = "\n") || (!rna->label)){
+		printf("\n! ! Missing sequence. Did you entered the file in 'fasta' format, including header?\n\n");
+		printf("Example:\n");
+		printf("> sequence name\n");
+		printf("CGAUGCGAUGUCGU...\n\n");
+	}else{
+		printf("\n! ! Bad parameter value (-n): This value is too small.\n\n"); 
+	}
     usage(); 
     exit(EXIT_SUCCESS); 
   }
@@ -366,8 +375,8 @@ int main(int argc, char **argv){
   parse_params(argc, argv);
   RT = TEMPSCALE*0.0019872370936902486 * (273.15 + TEMP) * 100;
   rna_seq= (plain_sequence *) get_plain_sequence(nameFileInFasta, RNAname);	 
-  check_and_update_params(rna_seq->size);
-#ifndef IGNOREMPFR //do not inglude MPFR during compilation
+  check_and_update_params(rna_seq);
+#ifndef IGNOREMPFR //do not include MPFR during compilation
   if(!USEMPFR){
 #endif
 	  if(NONREDUN && ZSAMPLING){
@@ -434,38 +443,65 @@ int main(int argc, char **argv){
 		  if (TIMEINFO) clock_gettime(CLOCK_MONOTONIC, &start_time);  
 		  folded_rna = stochastic_backtrack_locally_optimal_structures_double(SAMPLING, rna_seq, NONREDUN, TIMEINFO, 0, &struc_count, &DP_t);
 		  if (TIMEINFO) clock_gettime(CLOCK_MONOTONIC, &end_time);
-		  display_plain_sequence(rna_seq); 
-		  for (i=1;i<=SAMPLING;i++){
-			print_structure(folded_rna->structures[i], folded_rna->part_fcis[i], folded_rna->energy_ref[i], rna_seq);
+		  if(!FILEOUT){
+			  display_plain_sequence(rna_seq, NULL); 
+			  for (i=1;i<=SAMPLING;i++){
+				print_structure(folded_rna->structures[i], folded_rna->part_fcis[i], folded_rna->energy_ref[i], rna_seq, NULL);
+			  }
+			  if(TIMEINFO){
+				print_time_general(rna_seq, BP_t, flat_t);
+				printf(" - sampling time (%d samples): %f \n", SAMPLING, DP_t);
+			  } 
 		  }
-		  if(TIMEINFO){
-			print_time_general(rna_seq, BP_t, flat_t);
-			printf(" - sampling time (%d samples): %f \n", SAMPLING, DP_t);
-		  } 
+		  else{
+			  outfile=open_outputfile(FILEOUT, nameFileOut); 
+			  display_plain_sequence(rna_seq, outfile); 
+			  for (i=1;i<=SAMPLING;i++){
+				print_structure(folded_rna->structures[i], folded_rna->part_fcis[i], folded_rna->energy_ref[i], rna_seq, outfile);
+			  }
+			  if(TIMEINFO){
+				print_time_general(rna_seq, BP_t, flat_t);
+				fprintf(outfile, " - sampling time (%d samples): %f \n", SAMPLING, DP_t);
+			  } 
+			  close_outputfile(FILEOUT, outfile); 
+		  }
 		}
 		else if(ZSAMPLING>0){
-		  /* stochastic backtrack*/ 
-		  int i;
-		  folding* folded_rna;
-		  int struc_count = 0;
-		  if (TIMEINFO) clock_gettime(CLOCK_MONOTONIC, &start_time);  
-		  folded_rna = stochastic_backtrack_locally_optimal_structures_double(SAMPLING, rna_seq, NONREDUN, TIMEINFO, ZSAMPLING, &struc_count, &DP_t);
-		  if (TIMEINFO) clock_gettime(CLOCK_MONOTONIC, &end_time);
-		  display_plain_sequence(rna_seq);
-		  for (i=1;i<=struc_count;i++){
-			print_structure(folded_rna->structures[i], folded_rna->part_fcis[i], folded_rna->energy_ref[i], rna_seq);
-		  }
-		  if(TIMEINFO){
-			print_time_general(rna_seq, BP_t, flat_t);
-			printf(" - sampling time (%d samples): %f \n", SAMPLING, DP_t);
-		  } 
+			int i;
+			folding* folded_rna;
+			int struc_count = 0;
+			if (TIMEINFO) clock_gettime(CLOCK_MONOTONIC, &start_time);  
+			folded_rna = stochastic_backtrack_locally_optimal_structures_double(SAMPLING, rna_seq, NONREDUN, TIMEINFO, ZSAMPLING, &struc_count, &DP_t);
+			if (TIMEINFO) clock_gettime(CLOCK_MONOTONIC, &end_time);
+			if(!FILEOUT){
+			  /* stochastic backtrack*/ 
+			  display_plain_sequence(rna_seq, NULL);
+			  for (i=1;i<=struc_count;i++){
+				print_structure(folded_rna->structures[i], folded_rna->part_fcis[i], folded_rna->energy_ref[i], rna_seq, NULL);
+			  }
+			  if(TIMEINFO){
+				print_time_general(rna_seq, BP_t, flat_t);
+				printf(" - sampling time (%d samples): %f \n", SAMPLING, DP_t);
+			  }
+			}else{
+				/* stochastic backtrack*/ 
+			  outfile=open_outputfile(FILEOUT, nameFileOut); 
+			  display_plain_sequence(rna_seq, outfile);
+			  for (i=1;i<=struc_count;i++){
+				print_structure(folded_rna->structures[i], folded_rna->part_fcis[i], folded_rna->energy_ref[i], rna_seq, outfile);
+			  }
+			  if(TIMEINFO){
+				print_time_general(rna_seq, BP_t, flat_t);
+				fprintf(outfile, " - sampling time (%d samples): %f \n", SAMPLING, DP_t);
+			  }
+			} 
 		}
 		else
 		{
 		  /* print all loc opt structures */
 		  printf("-- Locally optimal secondary structures\n\n"); 
 		  if (!FILEOUT) 
-			display_plain_sequence(rna_seq);
+			display_plain_sequence(rna_seq, NULL);
 		  outfile=open_outputfile(FILEOUT, nameFileOut); 
 		  if (TIMEINFO) clock_gettime(CLOCK_MONOTONIC, &start_time);  
 		  generate_all_locally_optimal_structures(rna_seq,outfile);
@@ -483,7 +519,7 @@ int main(int argc, char **argv){
 	  free_base_pairs(rna_seq); 
 	  free_plain_sequence(rna_seq);
 	  printf("\nBye bye\n");
-#ifndef IGNOREMPFR //do not inglude MPFR during compilation	  
+#ifndef IGNOREMPFR //do not include MPFR during compilation	  
   }else{
 	  if(NONREDUN && ZSAMPLING){
 		printf("Warning : Non-redundancy option '-r' cannot be used with an option '-z' : '-r' ignored.\n");
@@ -550,14 +586,28 @@ int main(int argc, char **argv){
 		  if (TIMEINFO) clock_gettime(CLOCK_MONOTONIC, &start_time);  
 		  folded_rna = stochastic_backtrack_locally_optimal_structures_mpfr(SAMPLING, rna_seq, NONREDUN, TIMEINFO, 0, &struc_count, &DP_t);
 		  if (TIMEINFO) clock_gettime(CLOCK_MONOTONIC, &end_time);
-		  display_plain_sequence(rna_seq); 
-		  for (i=1;i<=SAMPLING;i++){
-			print_structure(folded_rna->structures[i], folded_rna->part_fcis[i], folded_rna->energy_ref[i], rna_seq);
+		  if(!FILEOUT){
+			  display_plain_sequence(rna_seq, NULL); 
+			  for (i=1;i<=SAMPLING;i++){
+				print_structure(folded_rna->structures[i], folded_rna->part_fcis[i], folded_rna->energy_ref[i], rna_seq, NULL);
+			  }
+			  if(TIMEINFO){
+				print_time_general(rna_seq, BP_t, flat_t);
+				printf(" - sampling time (%d samples): %f \n", SAMPLING, DP_t);
+			  } 
 		  }
-		  if(TIMEINFO){
-			print_time_general(rna_seq, BP_t, flat_t);
-			printf(" - sampling time (%d samples): %f \n", SAMPLING, DP_t);
-		  } 
+		  else{
+			  outfile=open_outputfile(FILEOUT, nameFileOut); 
+			  display_plain_sequence(rna_seq, outfile); 
+			  for (i=1;i<=SAMPLING;i++){
+				print_structure(folded_rna->structures[i], folded_rna->part_fcis[i], folded_rna->energy_ref[i], rna_seq, outfile);
+			  }
+			  if(TIMEINFO){
+				print_time_general(rna_seq, BP_t, flat_t);
+				fprintf(outfile, " - sampling time (%d samples): %f \n", SAMPLING, DP_t);
+			  } 
+			  close_outputfile(FILEOUT, outfile); 
+		  }
 		}
 		else if(ZSAMPLING>0){
 		  /* stochastic backtrack*/ 
@@ -567,21 +617,35 @@ int main(int argc, char **argv){
 		  if (TIMEINFO) clock_gettime(CLOCK_MONOTONIC, &start_time);  
 		  folded_rna = stochastic_backtrack_locally_optimal_structures_mpfr(SAMPLING, rna_seq, NONREDUN, TIMEINFO, ZSAMPLING, &struc_count, &DP_t);
 		  if (TIMEINFO) clock_gettime(CLOCK_MONOTONIC, &end_time);
-		  display_plain_sequence(rna_seq);
-		  for (i=1;i<=struc_count;i++){
-			print_structure(folded_rna->structures[i], folded_rna->part_fcis[i], folded_rna->energy_ref[i], rna_seq);
+		  if(!FILEOUT){
+			  /* stochastic backtrack*/ 
+			  display_plain_sequence(rna_seq, NULL);
+			  for (i=1;i<=struc_count;i++){
+				print_structure(folded_rna->structures[i], folded_rna->part_fcis[i], folded_rna->energy_ref[i], rna_seq, NULL);
+			  }
+			  if(TIMEINFO){
+				print_time_general(rna_seq, BP_t, flat_t);
+				printf(" - sampling time (%d samples): %f \n", SAMPLING, DP_t);
+			  }
+		  }else{
+				/* stochastic backtrack*/ 
+			  outfile=open_outputfile(FILEOUT, nameFileOut); 
+			  display_plain_sequence(rna_seq, outfile);
+			  for (i=1;i<=struc_count;i++){
+				print_structure(folded_rna->structures[i], folded_rna->part_fcis[i], folded_rna->energy_ref[i], rna_seq, outfile);
+			  }
+			  if(TIMEINFO){
+				print_time_general(rna_seq, BP_t, flat_t);
+				fprintf(outfile, " - sampling time (%d samples): %f \n", SAMPLING, DP_t);
+			  }
 		  }
-		  if(TIMEINFO){
-			print_time_general(rna_seq, BP_t, flat_t);
-			printf(" - sampling time (%d samples): %f \n", SAMPLING, DP_t);
-		  } 
 		}
 		else
 		{
 		  /* print all loc opt structures */
 		  printf("-- Locally optimal secondary structures\n\n"); 
 		  if (!FILEOUT) 
-			display_plain_sequence(rna_seq);
+			display_plain_sequence(rna_seq, NULL);
 		  outfile=open_outputfile(FILEOUT, nameFileOut); 
 		  if (TIMEINFO) clock_gettime(CLOCK_MONOTONIC, &start_time);  
 		  generate_all_locally_optimal_structures(rna_seq,outfile);

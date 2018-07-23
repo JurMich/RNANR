@@ -20,9 +20,9 @@ FILE *  open_outputfile(int FILEOUT, char * name){
 
   FILE * outfile; 
 
-  if (FILEOUT==1)
+  if (FILEOUT==1){
     outfile=fopen(name, "w") ;
-  else 
+  }else 
     outfile=stdout; 
   return outfile; 
 }

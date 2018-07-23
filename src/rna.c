@@ -52,7 +52,7 @@ plain_sequence * get_plain_sequence(char * inputFile,char * RNAname){
   FILE *fp;
   plain_sequence * rna;
   int size=0;
-  int i;
+  int i, skipped;
   char ch;
   char name[200]; 
   fp = fopen(inputFile, "rt");
@@ -62,7 +62,7 @@ plain_sequence * get_plain_sequence(char * inputFile,char * RNAname){
   }
   fgets(name,200,fp);
   i=1; 
-  while (name[i]!='\n') i++;
+  while ((name[i]!='\n')&&(name[i]!=NULL)) i++;
   size=MINI(199,i); 
   for (i=0; i<size-1; i++){
     RNAname[i]=name[i+1]; 
@@ -77,22 +77,31 @@ plain_sequence * get_plain_sequence(char * inputFile,char * RNAname){
   rna->size=size;
   fp = fopen(inputFile, "rt");
   fgets(name,200,fp);
+  skipped = 0;
   for (i=1; i<=size; i++){
     fscanf(fp, "%c",&ch);
-    rna->label[i]=RNAcharacter(ch,inputFile);   
+    if(ch != '\n'){
+      rna->label[i-skipped]=RNAcharacter(ch,inputFile);  
+    }else{
+	  skipped += 1;	
+	} 
   }
   fclose(fp);
-  rna->label[size+1]='\0';
+  rna->size = size-skipped;
+  rna->label[size+1-skipped]='\0';
   return rna;
 }
 
 
 /* display a plain sequence */
-void display_plain_sequence(plain_sequence * rna){
+void display_plain_sequence(plain_sequence * rna, FILE * outfile){
  int i;
+ if(!outfile){
+	outfile = stdout;	
+ }
  for(i=1;i<=rna->size;i++)
-   printf("%c",rna->label[i]);
- printf("\n");
+   fprintf(outfile, "%c",rna->label[i]);
+ fprintf(outfile, "\n");
 }
 
 /* free a plain sequence */
