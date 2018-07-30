@@ -89,11 +89,11 @@ TYPE ** partition_function_table;
 /**************************************************/
 
 // data structure definition
-#include "tree.c"
+#include "tree.inc"
 
 /**************************************************/
 /*                   counting                     */
 /**************************************************/
 
 // functions to 
-#include "counting.c"
+#include "counting.inc"

@@ -16,6 +16,9 @@
 /****************************************************************************************/
 /*     Reads an RNA Sequence and outputs all locally optimal secondary structures       */ 
 /****************************************************************************************/
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
  
 #include <time.h>
 #include <stdio.h>
@@ -24,7 +27,7 @@
 #include <unistd.h>
 #include <getopt.h>
 
-#ifndef IGNOREMPFR //do not inglude MPFR during compilation
+#if RNANR_WITH_MPFR //do not inglude MPFR during compilation
 #include <mpfr.h> //include this only if MPFR is wanted
 #endif
 
@@ -36,7 +39,7 @@
 #include "energies.h"
 #include "counting_double.h"
 
-#ifndef IGNOREMPFR //do not inglude MPFR during compilation
+#if RNANR_WITH_MPFR //do not inglude MPFR during compilation
 #include "counting_mpfr.h"
 #endif
 
@@ -59,7 +62,7 @@ char * nameFileBasePair;
 
 /* Print usage */
 void usage(){
-#ifndef IGNOREMPFR //do not inglude MPFR during compilation	
+#if RNANR_WITH_MPFR //do not inglude MPFR during compilation	
   printf("\nRNANR -i sequence.fa [-o outputfile] [-a int] [-c] [-u] [-f] [-g outputfile] [-d file.bra] [-e file.bra] [-k int] [-l int] [-m int] [-n int] [-p int]  [-q int] [-s int] [-r] [-t int] [-z float] [-t int] [-x] [-h] [-v]\n\n");
 #else
   printf("\nRNANR -i sequence.fa [-o outputfile] [-a int] [-c] [-u] [-f] [-w] [-g outputfile] [-d file.bra] [-e file.bra] [-k int] [-l int] [-m int] [-n int] [-p int]  [-q int] [-s int] [-r] [-t int] [-z float] [-x] [-h] [-v]\n\n");
@@ -69,7 +72,7 @@ void usage(){
   printf("   -c count\n"); 
   printf("   -u calculates the number of flat structures;\n");
   printf("   -f calculates Boltzmann's partition function.\n");
-#ifndef IGNOREMPFR //do not include MPFR during compilation 
+#if RNANR_WITH_MPFR //do not include MPFR during compilation 
   printf("   -w uses MPFR to augment precision of compututation, allowing deeper sampling (slower)."); 
 #endif
   printf("   -g outputfile \n");
@@ -119,7 +122,7 @@ void parse_params(int argc, char **argv){
   
   char char_read;
 
-#ifndef IGNOREMPFR //do not inglude MPFR during compilation	 
+#if RNANR_WITH_MPFR //do not inglude MPFR during compilation	 
   while((char_read = getopt(argc, argv, "a:b:cufwd:g:e:i:k:l:m:n:b:vo:p:q:s:t:z:xr")) != EOF){
 #else
   while((char_read = getopt(argc, argv, "a:b:cufd:g:e:i:k:l:m:n:b:vo:p:q:s:t:z:xr")) != EOF){
@@ -150,7 +153,7 @@ void parse_params(int argc, char **argv){
     case 'f' : /* calculating Boltzmann's partition function */
       PARTITION=1;
       break;
-#ifndef IGNOREMPFR //do not inglude MPFR during compilation      
+#if RNANR_WITH_MPFR //do not inglude MPFR during compilation      
     case 'w' : /* uses MPFR instead of standard doubles */
 	  USEMPFR=1;
 	  break;
@@ -376,7 +379,7 @@ int main(int argc, char **argv){
   RT = TEMPSCALE*0.0019872370936902486 * (273.15 + TEMP) * 100;
   rna_seq= (plain_sequence *) get_plain_sequence(nameFileInFasta, RNAname);	 
   check_and_update_params(rna_seq);
-#ifndef IGNOREMPFR //do not include MPFR during compilation
+#if RNANR_WITH_MPFR //do not include MPFR during compilation
   if(!USEMPFR){
 #endif
 	  if(NONREDUN && ZSAMPLING){
@@ -519,7 +522,7 @@ int main(int argc, char **argv){
 	  free_base_pairs(rna_seq); 
 	  free_plain_sequence(rna_seq);
 	  printf("\nBye bye\n");
-#ifndef IGNOREMPFR //do not include MPFR during compilation	  
+#if RNANR_WITH_MPFR //do not include MPFR during compilation	  
   }else{
 	  if(NONREDUN && ZSAMPLING){
 		printf("Warning : Non-redundancy option '-r' cannot be used with an option '-z' : '-r' ignored.\n");

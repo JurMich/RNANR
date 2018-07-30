@@ -106,11 +106,11 @@ mpfr_rnd_t default_rnd(){  // returns default rounding mode (to nearest)
 /**************************************************/
 
 // data structure definition
-#include "tree.c"
+#include "tree.inc"
 
 /**************************************************/
 /*                   counting                     */
 /**************************************************/
 
 // functions to 
-#include "counting.c"
+#include "counting.inc"
