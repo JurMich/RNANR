@@ -1,3 +1,6 @@
+# autoconfigutation file
+# provided by Ronny Lorenz
+
 AC_INIT(RNANR,1.1.0)
 
 AC_CONFIG_MACRO_DIR([.])
@@ -60,6 +63,7 @@ if test "x$with_mpfr" != "xno"; then
     AC_SEARCH_LIBS([mpfr_sub], [mpfr], [
         GMP_LIBS="-lgmp"
         AC_SUBST([GMP_LIBS])
+        AC_DEFINE([RNANR_WITH_MPFR], [1], [Use MPFR library support])
     ], [
     AC_MSG_WARN([
 ==========================

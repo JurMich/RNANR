@@ -29,7 +29,7 @@
 #include <ViennaRNA/eval.h>
 #include <ViennaRNA/fold.h>
 #include <ViennaRNA/part_func.h>
-#include <ViennaRNA/loop_energies.h>
+#include <ViennaRNA/loops/all.h>
 #include "rna.h"
 #include "base_pairs.h"
 #include "flat_structures.h"

@@ -27,7 +27,7 @@
 #include <unistd.h>
 #include <getopt.h>
 
-#if RNANR_WITH_MPFR //do not inglude MPFR during compilation
+#if RNANR_WITH_MPFR //do not include MPFR during compilation
 #include <mpfr.h> //include this only if MPFR is wanted
 #endif
 
@@ -39,7 +39,7 @@
 #include "energies.h"
 #include "counting_double.h"
 
-#if RNANR_WITH_MPFR //do not inglude MPFR during compilation
+#if RNANR_WITH_MPFR //do not include MPFR during compilation
 #include "counting_mpfr.h"
 #endif
 
@@ -62,7 +62,7 @@ char * nameFileBasePair;
 
 /* Print usage */
 void usage(){
-#if RNANR_WITH_MPFR //do not inglude MPFR during compilation	
+#if RNANR_WITH_MPFR //do not include MPFR during compilation	
   printf("\nRNANR -i sequence.fa [-o outputfile] [-a int] [-c] [-u] [-f] [-g outputfile] [-d file.bra] [-e file.bra] [-k int] [-l int] [-m int] [-n int] [-p int]  [-q int] [-s int] [-r] [-t int] [-z float] [-t int] [-x] [-h] [-v]\n\n");
 #else
   printf("\nRNANR -i sequence.fa [-o outputfile] [-a int] [-c] [-u] [-f] [-w] [-g outputfile] [-d file.bra] [-e file.bra] [-k int] [-l int] [-m int] [-n int] [-p int]  [-q int] [-s int] [-r] [-t int] [-z float] [-x] [-h] [-v]\n\n");
@@ -122,7 +122,7 @@ void parse_params(int argc, char **argv){
   
   char char_read;
 
-#if RNANR_WITH_MPFR //do not inglude MPFR during compilation	 
+#if RNANR_WITH_MPFR //do not include MPFR during compilation	 
   while((char_read = getopt(argc, argv, "a:b:cufwd:g:e:i:k:l:m:n:b:vo:p:q:s:t:z:xr")) != EOF){
 #else
   while((char_read = getopt(argc, argv, "a:b:cufd:g:e:i:k:l:m:n:b:vo:p:q:s:t:z:xr")) != EOF){
@@ -166,7 +166,7 @@ void parse_params(int argc, char **argv){
     case 's' : /* stochastic backtrack */
       SAMPLING= atoi(optarg);
       if(SAMPLING<0){
-	  	printf("Bad parameter value (-s): The value entered is too high or negative. \n\n"); 
+	  	printf(" /\\ \n/!!\\\n\"\"\"\" Bad parameter value (-s): The value entered is too high or negative. \n\n"); 
 		usage(); 
 	    exit(EXIT_SUCCESS);  
 	  }
@@ -199,7 +199,7 @@ void parse_params(int argc, char **argv){
     case 'k' :/* minimum size of the terminal loop */
       MIN_LOOP_SIZE= atoi(optarg); 
       if (MIN_LOOP_SIZE<=0){
-	printf("Bad parameter value (-k): This value should be positive.\n\n"); 
+	printf(" /\\ \n/!!\\\n\"\"\"\" Bad parameter value (-k): This value should be positive.\n\n"); 
 	usage(); 
 	exit(EXIT_SUCCESS);
       }
@@ -207,7 +207,7 @@ void parse_params(int argc, char **argv){
     case 'a': /* minimum length of a helix */
       MIN_HELIX_LENGTH=atoi(optarg);
       if (MIN_HELIX_LENGTH<=0){
-	printf("Bad parameter value (-a): This value should be positive.\n\n"); 
+	printf(" /\\ \n/!!\\\n\"\"\"\" Bad parameter value (-a): This value should be positive.\n\n"); 
 	usage(); 
 	exit(EXIT_SUCCESS);
       }
@@ -215,7 +215,7 @@ void parse_params(int argc, char **argv){
     case 'l': /* maximum size of the terminal loop */
       MAX_LOOP_SIZE= atoi(optarg); 
       if (MAX_LOOP_SIZE<0){
-	printf("Bad parameter value (-l): This value should be positive or 0.\n\n"); 
+	printf(" /\\ \n/!!\\\n\"\"\"\" Bad parameter value (-l): This value should be positive or 0.\n\n"); 
 	usage(); 
 	exit(EXIT_SUCCESS);
       }
@@ -223,7 +223,7 @@ void parse_params(int argc, char **argv){
     case 'p' : /* minimal number of base pairs */
       MIN_PERCENT_PAIRING=atoi(optarg); 
       if ((MIN_PERCENT_PAIRING<0) ||(MIN_PERCENT_PAIRING>100)) {
-	printf("Bad parameter value (-p): This value should range between 0 and 100.\n\n"); 
+	printf(" /\\ \n/!!\\\n\"\"\"\" Bad parameter value (-p): This value should range between 0 and 100.\n\n"); 
 	usage(); 
 	exit(EXIT_SUCCESS);
       }
@@ -231,7 +231,7 @@ void parse_params(int argc, char **argv){
        case 'q': /* maximum degree of a multiloop */
       MAX_DEGREE=atoi(optarg);
       if (MAX_DEGREE<=0){
-	printf("Bad parameter value (-q): This value should be positive.\n\n"); 
+	printf(" /\\ \n/!!\\\n\"\"\"\" Bad parameter value (-q): This value should be positive.\n\n"); 
 	usage(); 
 	exit(EXIT_SUCCESS);
       }
@@ -239,7 +239,7 @@ void parse_params(int argc, char **argv){
     case 't':
       TEMP =  atof(optarg);
       if (TEMP<-273){ 
-	printf("Bad parameter value (-t): This value should be higher than -273°C.\n\n"); 
+	printf(" /\\ \n/!!\\\n\"\"\"\" Bad parameter value (-t): This value should be higher than -273°C.\n\n"); 
 	usage(); 
 	exit(EXIT_SUCCESS);	 
       }
@@ -247,7 +247,7 @@ void parse_params(int argc, char **argv){
     case 'b':
       TEMPSCALE =  atof(optarg);
       if (TEMPSCALE<0){ 
-	printf("Bad parameter value (-b): This value should be positive.\n\n"); 
+	printf(" /\\ \n/!!\\\n\"\"\"\" Bad parameter value (-b): This value should be positive.\n\n"); 
 	usage(); 
 	exit(EXIT_SUCCESS);	 
       }
@@ -258,11 +258,12 @@ void parse_params(int argc, char **argv){
 	case 'z':
 	  ZSAMPLING=atof(optarg);
 	  if ((ZSAMPLING<=0.0) || (ZSAMPLING>1.0)){ 
-		usage("Bad parameter value (-z): This value should be between 0 and 1."); 
+		usage(" /\\ \n/!!\\\n\"\"\"\" Bad parameter value (-z): This value should be between 0 and 1."); 
 	    exit(EXIT_SUCCESS);	
 	  }
 	  break;  
     case '?':
+      printf(" /\\ \n/!!\\\n\"\"\"\" Unknown option. If you're using -w, the MPFR might not be enabled. Try to recompile with MPFR support enabled.\n\n");
       if(optopt == 'o')
 	printf("Option -%c requires an argument \n\n", optopt);
       usage();
@@ -271,7 +272,7 @@ void parse_params(int argc, char **argv){
   } /* end while */
 
  if (nameFileInFasta[0]==' ') {
-    printf("\n! ! MISSING INPUT FILE (-i) ! !  \n \n"); 
+    printf(" /\\ \n/!!\\\n\"\"\"\" Missing input file (-i). You might want to include this in fasta format.   \n \n"); 
     usage(); 
     exit(EXIT_SUCCESS);
   }
@@ -297,18 +298,18 @@ void check_and_update_params(plain_sequence * rna){
 
   if (MAX_HELIX_SCOPE < MIN_LOOP_SIZE + 2*MIN_HELIX_LENGTH){
     if((rna->label = "") || (rna->label = "\n") || (!rna->label)){
-		printf("\n! ! Missing sequence. Did you entered the file in 'fasta' format, including header?\n\n");
+		printf(" /\\ \n/!!\\\n\"\"\"\" Missing sequence. Did you entered the file in 'fasta' format, including header?\n\n");
 		printf("Example:\n");
 		printf("> sequence name\n");
 		printf("CGAUGCGAUGUCGU...\n\n");
 	}else{
-		printf("\n! ! Bad parameter value (-n): This value is too small.\n\n"); 
+		printf(" /\\ \n/!!\\\n\"\"\"\" Bad parameter value (-n): This value is too small.\n\n"); 
 	}
     usage(); 
     exit(EXIT_SUCCESS); 
   }
  if (MAX_LOOP_SIZE < MIN_LOOP_SIZE){
-    printf("\n! ! Bad parameter value (-l): This value should be higher than the minimum size of the hairpin loop (-k).\n\n"); 
+    printf(" /\\ \n/!!\\\n\"\"\"\" Bad parameter value (-l): This value should be higher than the minimum size of the hairpin loop (-k).\n\n"); 
     usage(); 
     exit(EXIT_SUCCESS);
   }

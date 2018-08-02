@@ -1,21 +1,36 @@
-  __  __  __  __  __  __  __  __  __  __  __  __  __  __  __  __  __  __   
- /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/
 
-            RNANR - RNA Non-Redundant - program to compute 
-          and sample non-redundantly RNA secondary structures
+
+     GGGCAACAAA                                                       AAACAACGGG
+  G-C                                                                          G-C
+A-U                RNANR - RNA Non-Redundant - program to compute                U-A
+A                and sample non-redundantly RNA secondary structures               A 
+
+
         
+ [R]                                                                             [R]  
+  [RRR]          [NN]          [NNN]     [A]     [NNN]          [NN]          [RRR]
+    [RRRRRR]      [NNN]        [NN]     [AAA]     [NN]        [NNN]      [RRRRRR]
+      [R] [RR]     [NNNN]      [N]     [A] [A]     [N]      [NNNN]     [RR] [R]
+       [R]  [R]     [N][N]    [N]     [A]   [A]     [N]    [N][N]     [R]  [R]
+        [R]  [R]    [N] [N]   [N]    [A]     [A]    [N]   [N] [N]    [R]  [R]  
+        [R] [R]      [N] [N]   [NNNAAAAAAAAAAAAAAANNN]   [N] [N]      [R] [R] 
+       [RRRR]       [N]   [N] [N]   [AAAA] [AAAA]   [N] [N]   [N]       [RRRR]  
+      [R]  [RR]     [N]    [N][N]  [AA]       [AA]  [N][N]    [N]     [RR]  [R]
+     [R]     [RR] [N]       [NNNN][AA]         [AA][NNNN]       [N] [RR]     [R]
+   [R]         [RRNNN]        [NNAAA]           [AAANN]        [NNNRR]         [R]
+  [RR]           [RRNN]         [NA]             [AN]            [NNRR]        [RR]
+ [RR]	                                                                       [RR] 
 
-           __  __  __  __  __  __  __  __  __  __  __  __  __  
-          /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/
-             ______    _    __    ____    __    _    ______
-            |  __  \  | |  /  |  / __ \  |  \  | |  /  __  |
-            | |__| |  | | /   | / |__| \ |   \ | |  | |__| |
-            |  _   /  | |/ /| | |  __  | | |\ \| |  \   _  |
-            | | \  \  |   / | | | |  | | | | \   |  /  / | |
-            |_|  \__\ |__/  |_| |_|  |_| |_|  \__| /__/  |_|
-           __  __  __  __  __  __  __  __  __  __  __  __  __  
-          /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/
-	  
+
+ =A=A=C=A=G=G=U=A=U=A=C=G=U=A=A=C=A=G=G=U=A=U=A=C=G=U=A=A=C=A=G=G=U=A=U=A=C=G=U=A=U=
+  / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / /
+=U=U=G=U=C=U=G=U=A=U=G=C=A=U=U=G=U=C=U=G=U=A=U=G=C=A=U=U=G=U=C=U=G=U=A=U=G=C=A=U=G=
+
+\\      //  _     ____    ____
+ \\    //  / |   | __ |  |___ \
+  \\  //    ||   ||  ||  ____||
+   \\//     ||   ||__|| | ____|
+    \/ ER   ||[] |____| |______\ 
 
 	  		
 \    /
@@ -45,8 +60,8 @@ PERFORM SAMPLING?"
 ---------------
 Before any installation of program is made, make sure you have:
 
-- ViennaRNA. The version tested is 2.2.8., however the latest version 
-  should be compatible too.
+- ViennaRNA. The version tested is 2.2.8. and 2.4.9, however the software
+  should be compatible with any version between those two.
 
 - Optional: MPFR and GMP by extension (required by MPFR). The version 
   tested is 3.1.5. If you don't have or don't wan't to install it you 
@@ -56,20 +71,13 @@ Before any installation of program is made, make sure you have:
 |NSTALLATION:
 ------------- 
 
-The program offers two versions to install:
-
-- the default version includes possibility to raise computation precision.
-  To install this version, just go to 'RNANR/src' of your downloaded 
-  directory and type 'make'.
-  
-- you can also install the version not needing MPFR (obligatory for those
-  not having it installed). Go to 'RNANR/src' of your downloaded directory
-  and type 'make CFLAGS="-DIGNOREMPFR"'.This will install version without
-  MPFR dependancy. Option '-w' isn't available in this version.
-   
-
-Go to the "src" directory, and type 'make'. This will create an executable
-file "locopt".
+- Download or clone the the software, unpack it in relevant case then go
+  to the RNANR directory;
+- type 'autoreconf' to create configuration file;  
+- type ./configure. If you want to do an installation without MPFR library
+  for whatever reason, type ./configure --without-mpfr;
+- the RNANR file should be created in RNANR/src subdirectory. Now you're
+  ready to use RNANR!
 
 
 |_|
@@ -87,7 +95,7 @@ The input file is an RNA sequence in FASTA format. DNA alphabet
 By default, results are displayed on the standard output. With the
 "test_file.fa" and default paramater values, you should get 1106
 locally optimal secondary structures, that are represented in
-bracket-dot format. The number at the end of each line is the total
+the dor-bracket format. The number at the end of each line is the total
 number of base pairs in the structure.
 
 
@@ -258,10 +266,16 @@ the structures of entered sequence:
 - u : Computes the number of all flat structures and exits. 
 
 
- _
-|_)
-|_)UG FIXES
------------
+ _               _
+|_)             |_
+|_)UG FIXES AND |_NHANCEMENTS
+-----------------------------
+
+V1.02
+	- Added autoconf file (provided by Ronny Lorenz)
+	- Some minor fixes
+	
+-[]===[]-
 
 V1.01:
 	- Added detection whether the ViennaRNA package is installed
@@ -272,6 +286,7 @@ V1.01:
 	- Resolved segmentation fault when sequence without header is entered
 	- And most importantly, made ASCII art mirrorized! :-)
 
+-[]===[]-
 
 |/
 |\NOWN BUGS : The sampling starts to send invalid samples once their 
@@ -281,9 +296,16 @@ V1.01:
 
  _
 |_|
-| |UTHOR :  Helene Touzet (helene.touzet@univ-lille1.fr) 
-----------  Juraj Michalik (juraj.michalik@inria.fr)
-            Yann Ponty (yann.ponty@lix.polytechnique.fr)
+| |UTHORS :  Helene Touzet (helene.touzet@univ-lille1.fr) 
+-----------  Juraj Michalik (juraj.michalik@inria.fr)
+             Yann Ponty (yann.ponty@lix.polytechnique.fr)
+
+                 _
+                |_
+                 _|PECIAL THANKS to Ronny Lorenz 
+                   (ronny@tbi.univie.ac.at) for
+                 the help with autoconfiguration!
+          
 
 Please send comments and bug reports to one of the addresses above.
 
@@ -295,6 +317,7 @@ Please send comments and bug reports to one of the addresses above.
 ViennaRNA - https://www.tbi.univie.ac.at/RNA/
 MPFR - http://www.mpfr.org/          
 
-  __  __  __  __  __  __  __  __  __  __  __  __  __  __  __  __  __  __   
- /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/ /_/
 
+ =A=A=C=A=G=G=U=A=U=A=C=G=U=A=A=C=A=G=G=U=A=U=A=C=G=U=A=A=C=A=G=G=U=A=U=A=C=G=U=A=U=
+  / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / / /
+=U=U=G=U=C=U=G=U=A=U=G=C=A=U=U=G=U=C=U=G=U=A=U=G=C=A=U=U=G=U=C=U=G=U=A=U=G=C=A=U=G=
