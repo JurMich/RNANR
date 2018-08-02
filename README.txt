@@ -60,6 +60,8 @@ PERFORM SAMPLING?"
 ---------------
 Before any installation of program is made, make sure you have:
 
+- autoreconf to create configuration script
+
 - ViennaRNA. The version tested is 2.2.8. and 2.4.9, however the software
   should be compatible with any version between those two.
 
@@ -73,7 +75,7 @@ Before any installation of program is made, make sure you have:
 
 - Download or clone the the software, unpack it in relevant case then go
   to the RNANR directory;
-- type 'autoreconf' to create configuration file;  
+- type 'autoreconf -i' to create configuration file;  
 - type ./configure. If you want to do an installation without MPFR library
   for whatever reason, type ./configure --without-mpfr;
 - the RNANR file should be created in RNANR/src subdirectory. Now you're
