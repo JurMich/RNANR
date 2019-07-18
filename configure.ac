@@ -38,7 +38,7 @@ AC_SEARCH_LIBS([exp], [m], [], [
 # Search for the RNAlib2 and set variables for Makefiles if found.
 # _CFLAGS and _LIBS can be overriden with the module name from
 # PKG_CHECK_MODULES
-PKG_CHECK_MODULES([VRNA], [RNAlib2],
+PKG_CHECK_MODULES([VRNA], [RNAlib2 >= 2.4.7],
                   [ AC_SUBST([VRNA_CFLAGS])
                     AC_SUBST([VRNA_LIBS])
                   ],
