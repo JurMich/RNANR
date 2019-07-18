@@ -177,16 +177,17 @@ double internal_loop_energy(int i, int k, int l, int j, plain_sequence *rna){
 double hairpin_energy(int i, int j, plain_sequence * rna){
   double hairpin_energy;
   int hsize, ptype;
-  char *hseq; /* sequence of unpaired bases in hairpin */
+  char hseq[10]; /* sequence of unpaired bases in hairpin */
   hsize = j - i - 1;
   ptype = get_type(rna->label[i], rna->label[j]);
-  hseq = (char*) malloc ((hsize+1)*sizeof(char));
-  strncpy(hseq, rna->label+i+1, hsize);
-  hseq[hsize] = '\0';
+  hseq[0] = '\0';
+  if (hsize < 7) {
+    strncpy(&(hseq[0]), rna->label+i-1, hsize + 2);
+    hseq[hsize + 2] = '\0';
+  }
   hairpin_energy = E_Hairpin(hsize, ptype, E_fold_cp->sequence_encoding[i+1], E_fold_cp->sequence_encoding[j-1], hseq, E_fold_cp->params);
   //hairpin_energy = vrna_E_hp_loop(E_fold_cp, i, j);
   //printf("ptype: %d, energy: %f, hseq: %s, hsize: %d\n", ptype, hairpin_energy, hseq, hsize);
-  free(hseq);
   return hairpin_energy;
 }
 

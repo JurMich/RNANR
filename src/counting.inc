@@ -107,7 +107,7 @@ void get_partition_function(TYPE * partition_function, plain_sequence * rna){
 	  current_base_pair=current_flat_structure->current;
 	  i=get_flat_structure_start(current_base_pair);
 	  j=get_flat_structure_end(current_base_pair); 
-      if ((i==x) && (j==y) && !is_entirely_contained(i,j,rna)){ /* exception to cases where i=1 OR j=rna->size */
+      if ((i==x) && (j==y) && (!is_entirely_contained(i,j,rna)) && (!((j == rna->size) || (i == 1)))){ /* exception to cases where i=1 OR j=rna->size */
 	    /* thickness= 1 */
 	    apply_energy_term(&partition_fci, stacking_energy(x-1,y+1), partition_function_table[x+1][y-1]); /* yann */
         add_link_element(linktable, DOUBLE_CAST(partition_fci), current_flat_structure);
