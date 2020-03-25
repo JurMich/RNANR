@@ -68,7 +68,8 @@ mpfr_rnd_t default_rnd(){  // returns default rounding mode (to nearest)
 #define CLEAR(a) mpfr_clear(a)
 #define TYPE_PRINT(a) mpfr_out_str(stdout, 10, 0, a, default_rnd()); // double only!  
 #define DOUBLE_CAST(a) mpfr_get_d(a, default_rnd()) // casts TYPE to double. 
-#define INIT_RNG() gmp_randinit_default (rng_state);  // initiates RNG
+#define INIT_RNG() gmp_randinit_default (rng_state); \
+                   gmp_randseed_ui(rng_state, (unsigned long) time(NULL)); // initiates RNG
 #define RANDOM_NUMBER(r, upper_bound) mpfr_urandomb(r, rng_state);\
                                       mpfr_mul(r,r, upper_bound, default_rnd())  
 
